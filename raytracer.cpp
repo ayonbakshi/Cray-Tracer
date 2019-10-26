@@ -4,24 +4,9 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <algorithm>
 
 constexpr double INF = 1e10;
-
-struct Color{
-    std::array<int, 3> rgb;
-    Color(): rgb{{0,0,0}} {}
-    Color(int r, int g, int b): rgb{{r,g,b}} {}
-    int &r() { return rgb[0]; }
-    int &g() { return rgb[1]; }
-    int &b() { return rgb[2]; }
-};
-
-const Color red{255, 0, 0};
-const Color green{0, 255, 0};
-const Color blue{0, 0, 255};
-const Color black{0, 0, 0};
-const Color white{255, 255, 255};
-const Color background{160, 255, 253};
 
 template<typename T>
 struct Vec3 {
@@ -32,6 +17,9 @@ struct Vec3 {
     T &x() { return p[0]; }
     T &y() { return p[1]; }
     T &z() { return p[2]; }
+    T &r() { return p[0]; }
+    T &g() { return p[1]; }
+    T &b() { return p[2]; }
     void print(){ std::cout << x() << ":" << y() << ":" << z() << std::endl;}
 
     T norm() const {
@@ -47,12 +35,20 @@ struct Vec3 {
 
     T dot(const Vec3<T> &other) { return p[0] * other.p[0] + p[1] * other.p[1] + p[2] * other.p[2]; }
 
-    Vec3<T> operator*(const T &s) const { return Vec3<T>{s * p[0], s * p[1], s * p[2]}; }
+    Vec3<T> operator*(const double &s) const { return Vec3<T>{s * p[0], s * p[1], s * p[2]}; }
     Vec3<T> operator+(const Vec3<T> &other) const {return Vec3<T>{p[0] + other.p[0], p[1] + other.p[1], p[2] + other.p[2]}; }
     Vec3<T> operator-(const Vec3<T> &other) const {return Vec3<T>{p[0] - other.p[0], p[1] - other.p[1], p[2] - other.p[2]}; }
 };
 
 typedef Vec3<double> Vec3d;
+typedef Vec3<int> Color;
+
+const Color red{255, 0, 0};
+const Color green{0, 255, 0};
+const Color blue{0, 0, 255};
+const Color black{0, 0, 0};
+const Color white{255, 255, 255};
+const Color background{160, 255, 253};
 
 struct Material{
     Color color;
@@ -68,7 +64,8 @@ struct Sphere {
     Sphere(Vec3d center, double radius, Material material):
         center{center}, radius{radius}, material{material} {}
 
-    bool ray_intersection(const Vec3d &ray_orig, const Vec3d &ray_dir, double &t0, double &t1) const {
+    bool ray_intersection(const Vec3d &ray_orig, const Vec3d &ray_dir, double &dist, Vec3d &hit_loc, Vec3d &hit_norm) const {
+        double t0, t1;
         Vec3d L = center - ray_orig; 
         double tca = L.dot(ray_dir); 
         // if (tca < 0) return false;
@@ -85,7 +82,10 @@ struct Sphere {
             t0 = t1; // if t0 is negative, let's use t1 instead 
             if (t0 < 1e-6) return false; // both t0 and t1 are negative 
         }
- 
+
+        dist = t0;
+        hit_loc = ray_orig + (ray_dir * dist);
+        hit_norm = hit_loc - center;
         return true; 
     }
 };  
@@ -99,16 +99,19 @@ struct Scene {
 Color trace(const Vec3d &ray_orig, const Vec3d &ray_dir, const Scene &scene){
     double min_dist = INF;
     const Sphere *closest_obj = nullptr;
+    Vec3d hit_loc, hit_norm;
 
     // calculate closest sphere
     bool outline = false;
     for(const Sphere &obj : scene.objects){
-        double t0 = INF, t1 = INF;
-        
-        if(obj.ray_intersection(ray_orig, ray_dir, t0, t1)){
-            if (t0 < min_dist) { 
-                min_dist = t0; 
+        double dist = INF;
+        Vec3d tmp_hit_loc, tmp_hit_norm;
+        if(obj.ray_intersection(ray_orig, ray_dir, dist, tmp_hit_loc, tmp_hit_norm)){
+            if (dist < min_dist) { 
+                min_dist = dist; 
                 closest_obj = &obj;
+                hit_loc = tmp_hit_loc;
+                hit_norm = tmp_hit_norm;
             }
         }
     }
@@ -116,25 +119,31 @@ Color trace(const Vec3d &ray_orig, const Vec3d &ray_dir, const Scene &scene){
 
     Vec3d light_pos = scene.light_sources[0];
     if(closest_obj){
-        Vec3d hit_loc = ray_orig + (ray_dir * min_dist);
+        hit_norm.normalize();
         Vec3d shadow_dir = light_pos - hit_loc;
         shadow_dir.normalize();
 
         bool in_shadow = false;
         for(const Sphere &obj : scene.objects){
             double dist;
-            bool outline = false;
             Vec3d tmp;
-            if(obj.ray_intersection(hit_loc, shadow_dir, dist, dist)){
+            if(obj.ray_intersection(hit_loc, shadow_dir, dist, tmp, tmp)){
                 in_shadow = true;
             }
         }
         
-        if(in_shadow){
-            return black;
-        } else {
-            return closest_obj->material.color;
-        }
+        // if(in_shadow){
+        //     return black;
+        // } else {
+            double factor = std::max(0.0, hit_norm.dot(shadow_dir));
+            Color clr = closest_obj->material.color;
+            // std::cout << factor << std::endl;
+            Color c = closest_obj->material.color * (factor);
+
+            // std::cout << factor << " " << c.r() << " " << c.g() << " " << c.b() << std::endl;
+            // std::cout << factor << std::endl;
+            return c;
+        // }
     }
     return background;
 }
