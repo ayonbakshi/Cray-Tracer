@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-#include "png.h"
 
 void drawbmp (const char *filename, int WIDTH, int HEIGHT, Color *pixels) {
 

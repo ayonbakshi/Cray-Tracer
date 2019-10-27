@@ -54,7 +54,6 @@ Color trace(const Vec3d &ray_orig, const Vec3d &ray_dir, const Scene &scene){
             return black;
         } else {
             double factor = std::max(0.0, hit_norm.dot(shadow_dir));
-            // std::cout << factor << hit_norm.dot(shadow_dir) << std::endl;
             Color c = closest_obj->material.color * factor;
             return c;
         }
@@ -94,17 +93,18 @@ int main(){
     Material g = {green};
     Material b = {blue};
     Material floor = {{69, 37, 80}};
+    Material blue_floor = {{120, 80, 200}};
 
     using std::unique_ptr;
-    scene.objects.push_back(unique_ptr<Object>(new Plane({ 0.0,      1, 0.1}, floor, {0, -5, -30}, 100))); 
-    scene.objects.push_back(unique_ptr<Object>(new  Mesh("wolf1.obj", r))); 
+    scene.objects.push_back(unique_ptr<Object>(new Plane({ 0.0,      1, 0.1}, floor, {0, -8, -30}, 100))); 
+    scene.objects.push_back(unique_ptr<Object>(new  Mesh("monkey.obj", blue_floor))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      0, -20},     4.0, r))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      5, -35},     4.0, g))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,     2, -15},     2.0, b))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,      0, -25},     3.0, r))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({-5.5,      0, -20},     0.5, g))); 
     
-    scene.light_sources.push_back({-10,     15, -15}); 
+    scene.light_sources.push_back({-10,     15, 5}); 
     render(std::string("raycast.bmp"), scene);
 }
 
