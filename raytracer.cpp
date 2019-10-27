@@ -25,7 +25,7 @@ Color trace(const Vec3d &ray_orig, const Vec3d &ray_dir, const Scene &scene){
         double dist = INF;
         Vec3d tmp_hit_loc, tmp_hit_norm;
         if(obj->ray_intersection(ray_orig, ray_dir, dist, tmp_hit_loc, tmp_hit_norm)){
-            if (dist < min_dist) { 
+            if (dist < min_dist) {
                 min_dist = dist; 
                 closest_obj = obj.get();
                 hit_loc = tmp_hit_loc;
@@ -49,11 +49,12 @@ Color trace(const Vec3d &ray_orig, const Vec3d &ray_dir, const Scene &scene){
                 in_shadow = true;
             }
         }
-        
+
         if(in_shadow){
             return black;
         } else {
             double factor = std::max(0.0, hit_norm.dot(shadow_dir));
+            // std::cout << factor << hit_norm.dot(shadow_dir) << std::endl;
             Color c = closest_obj->material.color * factor;
             return c;
         }
@@ -94,20 +95,16 @@ int main(){
     Material b = {blue};
     Material floor = {{69, 37, 80}};
 
-    // scene.objects.push_back(Sphere({ 0.0, -10004, -20}, 10000.0, floor));
     using std::unique_ptr;
     scene.objects.push_back(unique_ptr<Object>(new Plane({ 0.0,      1, 0.1}, floor, {0, -5, -30}, 100))); 
-    scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      0, -20},     4.0, r))); 
-    scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      5, -35},     4.0, g))); 
-    scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,     2, -15},     2.0, b))); 
-    scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,      0, -25},     3.0, r))); 
-    scene.objects.push_back(unique_ptr<Object>(new Sphere({-5.5,      0, -20},     0.5, g))); 
+    scene.objects.push_back(unique_ptr<Object>(new  Mesh("wolf1.obj", r))); 
+    // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      0, -20},     4.0, r))); 
+    // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      5, -35},     4.0, g))); 
+    // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,     2, -15},     2.0, b))); 
+    // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,      0, -25},     3.0, r))); 
+    // scene.objects.push_back(unique_ptr<Object>(new Sphere({-5.5,      0, -20},     0.5, g))); 
     
     scene.light_sources.push_back({-10,     15, -15}); 
-    // light
-    // for(double i = 0; i < 20; i += 0.1){
-        // scene.light_sources[0].x() = i;
-        render(std::string("raycast.bmp"), scene);
-    // }
+    render(std::string("raycast.bmp"), scene);
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <iostream>
 
 constexpr double INF = 1e10;
 constexpr double EPSILON = 1e-6;
@@ -20,10 +21,10 @@ public:
     T &r() { return p[0]; }
     T &g() { return p[1]; }
     T &b() { return p[2]; }
-    void print(){ std::cout << x() << ":" << y() << ":" << z() << std::endl;}
+    void print() const { std::cout << p[0] << " : " << p[1] << " : " << p[2] << std::endl;}
 
     T norm() const {
-        T sum;
+        T sum = 0;
         for(const T &t : p) sum += t * t;
         return sqrt(sum);
     }
@@ -34,10 +35,18 @@ public:
     }
 
     T dot(const Vec3<T> &other) const { return p[0] * other.p[0] + p[1] * other.p[1] + p[2] * other.p[2]; }
+    Vec3<T> cross(const Vec3<T> &other) const {
+        return {
+            p[1] * other.p[2] - p[2] * other.p[1],
+            p[2] * other.p[0] - p[0] * other.p[2],
+            p[0] * other.p[1] - p[1] * other.p[0]
+        };
+    }
 
-    Vec3<T> operator*(const double &s) const { return Vec3<T>{s * p[0], s * p[1], s * p[2]}; }
-    Vec3<T> operator+(const Vec3<T> &other) const {return Vec3<T>{p[0] + other.p[0], p[1] + other.p[1], p[2] + other.p[2]}; }
-    Vec3<T> operator-(const Vec3<T> &other) const {return Vec3<T>{p[0] - other.p[0], p[1] - other.p[1], p[2] - other.p[2]}; }
+    Vec3<T> operator*(const double &s) const { return {s * p[0], s * p[1], s * p[2]}; }
+    // Vec3<T> operator*(const T &s) const { return {s * p[0], s * p[1], s * p[2]}; }
+    Vec3<T> operator+(const Vec3<T> &other) const {return {p[0] + other.p[0], p[1] + other.p[1], p[2] + other.p[2]}; }
+    Vec3<T> operator-(const Vec3<T> &other) const {return {p[0] - other.p[0], p[1] - other.p[1], p[2] - other.p[2]}; }
 };
 
 typedef Vec3<double> Vec3d;
