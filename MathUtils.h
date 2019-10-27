@@ -43,14 +43,13 @@ public:
         };
     }
 
-    Vec3<T> operator*(const double &s) const { return {s * p[0], s * p[1], s * p[2]}; }
-    // Vec3<T> operator*(const T &s) const { return {s * p[0], s * p[1], s * p[2]}; }
+    Vec3<T> operator*(const T &s) const { return {s * p[0], s * p[1], s * p[2]}; }
     Vec3<T> operator+(const Vec3<T> &other) const {return {p[0] + other.p[0], p[1] + other.p[1], p[2] + other.p[2]}; }
     Vec3<T> operator-(const Vec3<T> &other) const {return {p[0] - other.p[0], p[1] - other.p[1], p[2] - other.p[2]}; }
 };
 
 typedef Vec3<double> Vec3d;
-typedef Vec3<int> Color;
+typedef Vec3<double> Color;
 
 const Color red{255, 0, 0};
 const Color green{0, 255, 0};

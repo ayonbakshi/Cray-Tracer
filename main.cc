@@ -8,6 +8,7 @@
 
 #include "Object.h"
 #include "MathUtils.h"
+#include "writebmp.h"
 
 struct Scene {
     std::vector<std::unique_ptr<Object>> objects;
@@ -61,8 +62,6 @@ Color trace(const Vec3d &ray_orig, const Vec3d &ray_dir, const Scene &scene){
     return background;
 }
 
-#include "writebmp.h"
-
 const int width = 1080, height = 720;
 Color pixels[width * height];
 void render(const std::string &filepath, const Scene &scene){
@@ -97,8 +96,8 @@ int main(){
 
     using std::unique_ptr;
     scene.objects.push_back(unique_ptr<Object>(new Plane({ 0.0,      1, 0.1}, floor, {0, -8, -30}, 100))); 
-    scene.objects.push_back(unique_ptr<Object>(new  Mesh("monkey.obj", blue_floor))); 
-    // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      0, -20},     4.0, r))); 
+    scene.objects.push_back(unique_ptr<Object>(new  Mesh("assets/monkey.obj", blue_floor))); 
+    scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      0, -20},     4.0, r))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      5, -35},     4.0, g))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,     2, -15},     2.0, b))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,      0, -25},     3.0, r))); 

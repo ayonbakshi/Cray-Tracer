@@ -1,6 +1,10 @@
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+
+#include "MathUtils.h"
 
 void drawbmp (const char *filename, int WIDTH, int HEIGHT, Color *pixels) {
 
@@ -85,9 +89,12 @@ for (y = HEIGHT - 1; y >= 0; y--)     // BMP image format is written from bottom
       green = pixels[x + y * WIDTH].g();
       blue = pixels[x + y * WIDTH].b();
 
-      if (red > 255) red = 255; if (red < 0) red = 0;
-      if (green > 255) green = 255; if (green < 0) green = 0;
-      if (blue > 255) blue = 255; if (blue < 0) blue = 0;
+      if (red > 255) red = 255;
+      if (red < 0) red = 0;
+      if (green > 255) green = 255;
+      if (green < 0) green = 0;
+      if (blue > 255) blue = 255;
+      if (blue < 0) blue = 0;
 
       // Also, it's written in (b,g,r) format...
 
