@@ -37,6 +37,10 @@ public:
             for(T &t : p) t /= mag;
     }
 
+    Vec3<T> mix(const Vec3<T> &other, T factor){
+        return (*this) * factor + other * (1 - factor);
+    }
+
     T dot(const Vec3<T> &other) const { return p[0] * other.p[0] + p[1] * other.p[1] + p[2] * other.p[2]; }
     Vec3<T> cross(const Vec3<T> &other) const {
         return {

@@ -9,6 +9,7 @@
 
 struct Material{
     Color color;
+    bool reflective;
 };
 
 class Object {
