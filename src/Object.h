@@ -58,14 +58,7 @@ class Mesh : public Object {
 
 public:
     Mesh(const std::string &filepath, const Material &material);
-    
     ~Mesh() {}
-
-    bool ray_triangle_intersection(const Vec3d &ray_orig,
-                                   const Vec3d &ray_dir,
-                                   int tri_index,
-                                   double &dist,
-                                   Vec3d &hit_loc) const;
 
     bool ray_intersection(const Vec3d &ray_orig,
                           const Vec3d &ray_dir,

@@ -1,25 +1,22 @@
-#include <math.h>
-#include <iostream>
-#include <array>
-#include <vector>
-#include <string>
-#include <fstream>
-#include <memory>
-#include <exception>
+#include <cmath>
 
-#include "Object.h"
 #include "MathUtils.h"
+#include "Raycaster.h"
 #include "writebmp.h"
 
-#include "parallel_for.h"
+Scene::Scene(): background{255} {}
 
-struct Scene {
-    std::vector<std::unique_ptr<Object>> objects;
-    std::vector<Vec3d> light_sources;
-    Color background;
-};
+Scene::Scene(const Color &background): background{background} {}
 
-Color trace(const Vec3d &ray_orig, const Vec3d &ray_dir, const Scene &scene){
+void Scene::add_object(Object *obj){
+    objects.emplace_back(obj);
+}
+
+void Scene::add_light(const Vec3d &pos){
+    light_sources.push_back(pos);
+}
+
+Color Scene::trace(const Vec3d &ray_orig, const Vec3d &ray_dir, const Scene &scene){
     double min_dist = INF;
     const Object *closest_obj = nullptr;
     Vec3d hit_loc, hit_norm;
@@ -65,14 +62,14 @@ Color trace(const Vec3d &ray_orig, const Vec3d &ray_dir, const Scene &scene){
     return background;
 }
 
-const int width = 1080, height = 720;
-Color pixels[width * height];
-void render(const std::string &filepath, const Scene &scene){
+void Scene::render(const std::string &filepath, const Scene &scene, int width, int height){
+    std::vector<Color> pixels(width * height);
+    
     double inv_width = 1 / double(width), inv_height = 1 / double(height); 
     double fov = 45, aspectratio = width / double(height); 
     double angle = tan(3.141592 * 0.5 * fov / 180.0); 
     // Trace rays
-
+    
     std::vector<int> indices(height * width);
     for(int i = 0; i < height * width; ++i) indices[i] = i;
 
@@ -88,35 +85,11 @@ void render(const std::string &filepath, const Scene &scene){
         Color c = trace(Vec3d{}, raydir, scene);
         pixels[x + y * width] = c;
 
-        if(i % (int)(height * width / 100.0 * 1) == 0) std::cout << i / (int)(height * width / 100.0) << std::endl;
+        if(i % (int)(height * width / 100.0 * 10) == 0) std::cout << i / (int)(height * width / 100.0) << std::endl;
     };
 
     // igl::parallel_for(height * width, trace_rays);
     for(int i = 0; i < height * width; ++i) trace_rays(i);
 
-    drawbmp(filepath.c_str(), width, height, pixels); 
+    drawbmp(filepath.c_str(), width, height, pixels.data()); 
 }
-
-int main(){
-    Scene scene;
-
-    Material r = {red};
-    Material g = {green};
-    Material b = {blue};
-    Material w = {white};
-    Material floor = {{69, 37, 80}};
-    Material blue_floor = {{120, 80, 200}};
-
-    using std::unique_ptr;
-    // scene.objects.push_back(unique_ptr<Object>(new Plane({ 0.0,      1, 0.1}, floor, {0, -8, -30}, 100))); 
-    scene.objects.push_back(unique_ptr<Object>(new  Mesh("assets/polysphere.obj", w))); 
-    // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      0, -20},     4.0, r))); 
-    // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      5, -35},     4.0, g))); 
-    // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,     2, -15},     2.0, b))); 
-    // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,      0, -25},     3.0, r))); 
-    // scene.objects.push_back(unique_ptr<Object>(new Sphere({-5.5,      0, -20},     0.5, g))); 
-    
-    scene.light_sources.push_back({-10,     15, 5}); 
-    render(std::string("raycast.bmp"), scene);
-}
-

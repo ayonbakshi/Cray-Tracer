@@ -5,7 +5,6 @@
 #include <memory>
 
 #include "MathUtils.h"
-#include "Object.h"
 
 class BBox{
     Vec3d min, max;
@@ -16,9 +15,6 @@ public:
     bool intersect(const Vec3d &ray_orig, const Vec3d &ray_dir);
 };
 
-// forward declaration of mesh
-class Mesh;
-
 class KDTree {
     struct Node{
         BBox bbox;
@@ -28,16 +24,25 @@ class KDTree {
         Node(const BBox &bbox): bbox{bbox}, left{nullptr}, right{nullptr}, tri_index{-1} {}
     };
 
-    const Mesh *mesh;
+    std::vector<Vec3d> *mesh_verts;
+    std::vector<std::array<int, 3>> *mesh_tris;
+
     std::vector<Vec3d> centroids;
     std::unique_ptr<Node> root;
 
 public:
     KDTree(): root{nullptr} {}
-    KDTree(Mesh *mesh);
+    KDTree(std::vector<Vec3d> *mesh_verts, std::vector<std::array<int, 3>> *mesh_tris);
 
     BBox build_bbox(const std::vector<int> &tri_indices);
     std::unique_ptr<Node> build_tree(std::vector<int> &tri_indices, int depth);
+
+
+    bool ray_triangle_intersection(const Vec3d &ray_orig,
+                                   const Vec3d &ray_dir,
+                                   int tri_index,
+                                   double &dist,
+                                   Vec3d &hit_loc) const;
     int ray_intersect(const Vec3d &ray_orig,
                       const Vec3d &ray_dir,
                       double &dist,

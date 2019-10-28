@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -std=c++14 -Wall -MMD -g -Ofast
 EXEC = main
-OBJECTS = main.o Object.o KDTree.o
+OBJECTS = main.o Object.o KDTree.o Raycaster.o
 DEPENDS = ${OBJECTS:.o=.d}
 
 ${EXEC}: ${OBJECTS}

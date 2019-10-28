@@ -56,20 +56,21 @@ bool BBox::intersect(const Vec3d &ray_orig, const Vec3d &ray_dir){
     return true; 
 }
 
-KDTree::KDTree(Mesh *mesh): mesh{mesh}
+KDTree::KDTree(std::vector<Vec3d> *mesh_verts, std::vector<std::array<int, 3>> *mesh_tris):
+    mesh_verts{mesh_verts}, mesh_tris{mesh_tris}
 {
-    centroids.reserve(mesh->tris.size());
-    for(uint i = 0; i < mesh->tris.size(); i++){
+    centroids.reserve(mesh_tris->size());
+    for(uint i = 0; i < mesh_tris->size(); i++){
         Vec3d centroid = {0,0,0};
-        for(int j = 0; j < 3; j++) centroid = centroid + mesh->verts[mesh->tris[i][j]];
+        for(int j = 0; j < 3; j++) centroid = centroid + (*mesh_verts)[(*mesh_tris)[i][j]];
         centroid = centroid * (1. / 3.);
         
         centroids.push_back(centroid);
     }
 
     
-    std::vector<int> tri_indices(mesh->tris.size());
-    for(uint i = 0; i < mesh->tris.size(); i++) tri_indices[i] = i;
+    std::vector<int> tri_indices(mesh_tris->size());
+    for(uint i = 0; i < mesh_tris->size(); i++) tri_indices[i] = i;
     root = build_tree(tri_indices, 0);
 }
 
@@ -77,7 +78,7 @@ BBox KDTree::build_bbox(const std::vector<int> &tri_indices){
     std::vector<Vec3d> points;
     points.reserve(tri_indices.size() * 3);
     for(int i : tri_indices){
-        for(int j = 0; j < 3; ++j) points.push_back(mesh->verts[mesh->tris[i][j]]);
+        for(int j = 0; j < 3; ++j) points.push_back((*mesh_verts)[(*mesh_tris)[i][j]]);
     }
 
     return BBox(points);
@@ -114,6 +115,43 @@ std::unique_ptr<KDTree::Node> KDTree::build_tree(std::vector<int> &tri_indices, 
     return node;
 }
 
+bool KDTree::ray_triangle_intersection(const Vec3d &ray_orig,
+                                     const Vec3d &ray_dir,
+                                     int tri_index,
+                                     double &dist,
+                                     Vec3d &hit_loc) const
+{
+    const Vec3d &vertex0 = (*mesh_verts)[(*mesh_tris)[tri_index][0]];
+    const Vec3d &vertex1 = (*mesh_verts)[(*mesh_tris)[tri_index][1]];  
+    const Vec3d &vertex2 = (*mesh_verts)[(*mesh_tris)[tri_index][2]];
+    Vec3d edge1 = vertex1 - vertex0, edge2 = vertex2 - vertex0;
+    Vec3d h, s, q;
+    double a,f,u,v;
+    h = ray_dir.cross(edge2);
+    a = edge1.dot(h);
+    if (a > -EPSILON && a < EPSILON)
+        return false;    // This ray is parallel to this triangle.
+    f = 1.0/a;
+    s = ray_orig - vertex0;
+    u = f * s.dot(h);
+    if (u < 0.0 || u > 1.0)
+        return false;
+    q = s.cross(edge1);
+    v = f * ray_dir.dot(q);
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+    // At this stage we can compute t to find out where the intersection point is on the line.
+    double t = f * edge2.dot(q);
+    if (t > EPSILON && t < 1/EPSILON) // ray intersection
+    {
+        dist = t;
+        hit_loc = ray_orig + ray_dir * t;
+        return true;
+    }
+    else // This means that there is a line intersection but not a ray intersection.
+        return false;
+}
+
 int KDTree::ray_intersect(const Vec3d &ray_orig,
                           const Vec3d &ray_dir,
                           double &dist,
@@ -133,7 +171,7 @@ int KDTree::ray_intersect_helper(const Vec3d &ray_orig,
     if(node->tri_index != -1){
         double tmp_dist;
         Vec3d tmp_hit_loc;
-        if(mesh->ray_triangle_intersection(ray_orig, ray_dir, node->tri_index, tmp_dist, tmp_hit_loc)){
+        if(ray_triangle_intersection(ray_orig, ray_dir, node->tri_index, tmp_dist, tmp_hit_loc)){
             dist = tmp_dist;
             hit_loc = tmp_hit_loc;
             return node->tri_index;
