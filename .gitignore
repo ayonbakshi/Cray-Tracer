@@ -1,1 +1,5 @@
 .vscode
+*.o
+*.d
+*.mtl
+src/*.bmp
