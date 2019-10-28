@@ -21,6 +21,9 @@ public:
     T &r() { return p[0]; }
     T &g() { return p[1]; }
     T &b() { return p[2]; }
+    T const &operator[](size_t i) const { return p[i]; };
+    T &operator[](size_t i) { return p[i]; };
+    
     void print() const { std::cout << p[0] << " : " << p[1] << " : " << p[2] << std::endl;}
 
     T norm() const {

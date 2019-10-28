@@ -4,8 +4,8 @@
 #include <vector>
 #include <array>
 
-
 #include "MathUtils.h"
+#include "KDTree.h"
 
 struct Material{
     Color color;
@@ -53,6 +53,8 @@ public:
 class Mesh : public Object {
     std::vector<Vec3d> verts;
     std::vector<std::array<int, 3>> tris;
+    std::vector<Vec3d> tri_norms;
+    KDTree kdtree;
 
 public:
     Mesh(const std::string &filepath, const Material &material);
@@ -70,4 +72,6 @@ public:
                           double &dist,
                           Vec3d &hit_loc,
                           Vec3d &hit_norm) const;
+
+    friend class KDTree;
 };

@@ -5,10 +5,13 @@
 #include <string>
 #include <fstream>
 #include <memory>
+#include <exception>
 
 #include "Object.h"
 #include "MathUtils.h"
 #include "writebmp.h"
+
+#include "parallel_for.h"
 
 struct Scene {
     std::vector<std::unique_ptr<Object>> objects;
@@ -69,18 +72,27 @@ void render(const std::string &filepath, const Scene &scene){
     double fov = 45, aspectratio = width / double(height); 
     double angle = tan(3.141592 * 0.5 * fov / 180.0); 
     // Trace rays
-    for(int y = 0; y < height; y++){
-        for(int x = 0; x < width; x++){ 
-            double xx = (2 * ((x + 0.5) * inv_width) - 1) * angle * aspectratio; 
-            double yy = (1 - 2 * ((y + 0.5) * inv_height)) * angle; 
-            Vec3d raydir(xx, yy, -1); 
 
-            raydir.normalize();
+    std::vector<int> indices(height * width);
+    for(int i = 0; i < height * width; ++i) indices[i] = i;
 
-            Color c = trace(Vec3d{}, raydir, scene);
-            pixels[x + y * width] = c;
-        } 
-    }
+    auto trace_rays = [&](int i){
+        int x = i % width;
+        int y = i / width;
+        double xx = (2 * ((x + 0.5) * inv_width) - 1) * angle * aspectratio; 
+        double yy = (1 - 2 * ((y + 0.5) * inv_height)) * angle; 
+        Vec3d raydir(xx, yy, -1); 
+
+        raydir.normalize();
+
+        Color c = trace(Vec3d{}, raydir, scene);
+        pixels[x + y * width] = c;
+
+        if(i % (int)(height * width / 100.0 * 1) == 0) std::cout << i / (int)(height * width / 100.0) << std::endl;
+    };
+
+    // igl::parallel_for(height * width, trace_rays);
+    for(int i = 0; i < height * width; ++i) trace_rays(i);
 
     drawbmp(filepath.c_str(), width, height, pixels); 
 }
@@ -91,13 +103,14 @@ int main(){
     Material r = {red};
     Material g = {green};
     Material b = {blue};
+    Material w = {white};
     Material floor = {{69, 37, 80}};
     Material blue_floor = {{120, 80, 200}};
 
     using std::unique_ptr;
-    scene.objects.push_back(unique_ptr<Object>(new Plane({ 0.0,      1, 0.1}, floor, {0, -8, -30}, 100))); 
-    scene.objects.push_back(unique_ptr<Object>(new  Mesh("assets/monkey.obj", blue_floor))); 
-    scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      0, -20},     4.0, r))); 
+    // scene.objects.push_back(unique_ptr<Object>(new Plane({ 0.0,      1, 0.1}, floor, {0, -8, -30}, 100))); 
+    scene.objects.push_back(unique_ptr<Object>(new  Mesh("assets/polysphere.obj", w))); 
+    // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      0, -20},     4.0, r))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 0.0,      5, -35},     4.0, g))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,     2, -15},     2.0, b))); 
     // scene.objects.push_back(unique_ptr<Object>(new Sphere({ 5.0,      0, -25},     3.0, r))); 

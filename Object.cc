@@ -91,6 +91,20 @@ Mesh::Mesh(const std::string &filepath, const Material &material):
             tris.push_back(vert_indices);
         }
     }
+    
+    tri_norms.reserve(tris.size());
+    for(uint i = 0; i < tris.size(); i++){
+        const Vec3d &vertex0 = verts[tris[i][0]];
+        const Vec3d &vertex1 = verts[tris[i][1]];  
+        const Vec3d &vertex2 = verts[tris[i][2]];
+        Vec3d edge1 = vertex1 - vertex0;
+        Vec3d edge2 = vertex2 - vertex0;
+        tri_norms.push_back(edge1.cross(edge2));
+    }
+
+    
+    kdtree = KDTree(this);
+
     std::cout << "Loaded " << filepath << " with " << verts.size()
         << " verts and " << tris.size() << " tris." << std::endl;
 }
@@ -101,13 +115,12 @@ bool Mesh::ray_triangle_intersection(const Vec3d &ray_orig,
                                      double &dist,
                                      Vec3d &hit_loc) const
 {
-    const Vec3d vertex0 = verts[tris[tri_index][0]];
-    const Vec3d vertex1 = verts[tris[tri_index][1]];  
-    const Vec3d vertex2 = verts[tris[tri_index][2]];
-    Vec3d edge1, edge2, h, s, q;
+    const Vec3d &vertex0 = verts[tris[tri_index][0]];
+    const Vec3d &vertex1 = verts[tris[tri_index][1]];  
+    const Vec3d &vertex2 = verts[tris[tri_index][2]];
+    Vec3d edge1 = vertex1 - vertex0, edge2 = vertex2 - vertex0;
+    Vec3d h, s, q;
     double a,f,u,v;
-    edge1 = vertex1 - vertex0;
-    edge2 = vertex2 - vertex0;
     h = ray_dir.cross(edge2);
     a = edge1.dot(h);
     if (a > -EPSILON && a < EPSILON)
@@ -133,6 +146,22 @@ bool Mesh::ray_triangle_intersection(const Vec3d &ray_orig,
         return false;
 }
 
+#define KDTREE
+#ifdef KDTREE
+
+bool Mesh::ray_intersection(const Vec3d &ray_orig,
+                            const Vec3d &ray_dir,
+                            double &dist,
+                            Vec3d &hit_loc,
+                            Vec3d &hit_norm) const
+{
+    int closest_tri = kdtree.ray_intersect(ray_orig, ray_dir, dist, hit_loc);
+    if(closest_tri == -1) return false;
+    hit_norm = tri_norms[closest_tri];
+    return true;
+}
+
+#else
 bool Mesh::ray_intersection(const Vec3d &ray_orig,
                             const Vec3d &ray_dir,
                             double &dist,
@@ -142,7 +171,7 @@ bool Mesh::ray_intersection(const Vec3d &ray_orig,
     int closest_tri = -1;
     dist = INF;
     Vec3d tmp_hit_loc;
-    for(unsigned int i = 0; i < tris.size(); i++){
+    for(uint i = 0; i < tris.size(); i++){
         double tri_dist = INF;
         if(ray_triangle_intersection(ray_orig, ray_dir, i, tri_dist, tmp_hit_loc)){
             if(tri_dist < dist){
@@ -154,15 +183,7 @@ bool Mesh::ray_intersection(const Vec3d &ray_orig,
     }
 
     if(closest_tri == -1) return false;
-    const Vec3d &vertex0 = verts[tris[closest_tri][0]];
-    const Vec3d &vertex1 = verts[tris[closest_tri][1]];  
-    const Vec3d &vertex2 = verts[tris[closest_tri][2]];
-    Vec3d edge1 = vertex1 - vertex0;
-    Vec3d edge2 = vertex2 - vertex0;
-
-    hit_norm = edge1.cross(edge2);
-
-    // JANKY SOLUTION FOR NORMALS FACING CAMERA
-    if(hit_norm.dot(ray_dir) > -EPSILON) hit_norm = hit_norm * -1;
+    hit_norm = tri_norms[closest_tri];
     return true;
 }
+#endif
