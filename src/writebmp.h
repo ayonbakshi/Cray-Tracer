@@ -85,9 +85,9 @@ for (y = HEIGHT - 1; y >= 0; y--)     // BMP image format is written from bottom
    for (x = 0; x <= WIDTH - 1; x++)
    {
 
-      red = pixels[x + y * WIDTH].r();
-      green = pixels[x + y * WIDTH].g();
-      blue = pixels[x + y * WIDTH].b();
+      red = pixels[x + y * WIDTH].r() * 255;
+      green = pixels[x + y * WIDTH].g() * 255;
+      blue = pixels[x + y * WIDTH].b() * 255;
 
       if (red > 255) red = 255;
       if (red < 0) red = 0;

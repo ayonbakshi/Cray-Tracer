@@ -6,9 +6,9 @@
 
 #include "Object.h"
 #include "MathUtils.h"
+#include "Material.h"
 
 
-Object::Object() { material.color = 0; }
 Object::Object(const Material &material): material{material} {}
 
 Sphere::Sphere(const Vec3d &center, double radius, const Material &material):

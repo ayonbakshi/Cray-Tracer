@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <array>
 #include <iostream>
 
@@ -58,9 +59,9 @@ public:
 typedef Vec3<double> Vec3d;
 typedef Vec3<double> Color;
 
-const Color red{255, 0, 0};
-const Color green{0, 255, 0};
-const Color blue{0, 0, 255};
+const Color red{1, 0, 0};
+const Color green{0, 1, 0};
+const Color blue{0, 0, 1};
 const Color black{0, 0, 0};
-const Color white{255, 255, 255};
-const Color background{160, 255, 253};
+const Color white{1, 1, 1};
+const Color background{160/255.0, 1, 1};

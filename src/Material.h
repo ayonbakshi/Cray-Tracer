@@ -1,0 +1,18 @@
+#pragma once
+
+#include <cmath>
+#include <vector>
+
+#include "MathUtils.h"
+#include "Light.h"
+
+struct Material{
+    Color color_a = 0, color_d = 0, color_s = 0;
+    double k_a = 0, k_d = 0, k_s = 0, alpha = 0;
+    bool reflective = false;
+
+    Color calculate_color(const Vec3d &ray_dir,
+                          const Vec3d &hit_loc,
+                          const Vec3d &hit_norm,
+                          const std::vector<Light> lights) const;
+};

@@ -6,16 +6,11 @@
 
 #include "MathUtils.h"
 #include "KDTree.h"
-
-struct Material{
-    Color color;
-    bool reflective;
-};
+#include "Material.h"
 
 class Object {
     public:
         Material material;
-        Object();
         Object(const Material &material);
         virtual bool ray_intersection(const Vec3d &, const Vec3d &, double &, Vec3d &, Vec3d &) const = 0;
         virtual ~Object() {}

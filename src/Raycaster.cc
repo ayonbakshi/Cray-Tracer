@@ -1,4 +1,5 @@
 #include <cmath>
+#include <omp.h>
 
 #include "MathUtils.h"
 #include "Raycaster.h"
@@ -51,8 +52,8 @@ Color Scene::trace(const Vec3d &ray_orig,
         Vec3d light_pos = light_sources[0].get_location();
         Vec3d light_dir = light_pos - hit_loc;
         
-        double r = light_dir.norm();
-        factor *= light_sources[0].get_intensity() / (r * r);
+        // double r = light_dir.norm();
+        // factor *= light_sources[0].get_intensity() / (r * r);
 
         hit_norm.normalize();
         light_dir.normalize();
@@ -66,14 +67,12 @@ Color Scene::trace(const Vec3d &ray_orig,
             }
         }
 
-        
+        Color c;
         if(in_shadow){
-            factor *= 0;
+            return black;
         } else {
-            factor *= std::max(0.0, hit_norm.dot(light_dir));
+            c = closest_obj->material.calculate_color(ray_dir, hit_loc, hit_norm, light_sources);
         }
-
-        Color c = closest_obj->material.color * factor;
         
         if(closest_obj->material.reflective){
             Color reflected_color = trace(hit_loc, hit_norm* -1, scene, hit_depth + 1);
@@ -113,6 +112,7 @@ void Scene::render(const std::string &filepath, const Scene &scene, int width, i
     };
 
     // igl::parallel_for(height * width, trace_rays);
+    #pragma omp parallel for
     for(int i = 0; i < height * width; ++i) trace_rays(i);
 
     drawbmp(filepath.c_str(), width, height, pixels.data()); 
