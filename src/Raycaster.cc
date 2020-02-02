@@ -5,7 +5,7 @@
 #include "Raycaster.h"
 #include "Object.h"
 #include "Light.h"
-#include "writebmp.h"
+#include "Camera.h"
 
 Scene::Scene(): background{255} {}
 
@@ -23,7 +23,7 @@ Color Scene::trace(const Vec3d &ray_orig,
                    const Vec3d &ray_dir,
                    const Scene &scene,
                    int hit_depth){
-    if(hit_depth == ray_bounce_limit) return background;
+    if(hit_depth == ray_bounce_limit) return 0;
 
     double min_dist = INF;
     const Object *closest_obj = nullptr;
@@ -75,8 +75,7 @@ Color Scene::trace(const Vec3d &ray_orig,
         }
         
         if(closest_obj->material.reflective){
-            Color reflected_color = trace(hit_loc, hit_norm* -1, scene, hit_depth + 1);
-            // std::cout << "here" << std::endl;
+            Color reflected_color = trace(hit_loc, closest_obj->material.reflected_ray(ray_dir, hit_norm), scene, hit_depth + 1);
             c = c.mix(reflected_color, 0.2);
         }
 
@@ -85,35 +84,33 @@ Color Scene::trace(const Vec3d &ray_orig,
     return background;
 }
 
-void Scene::render(const std::string &filepath, const Scene &scene, int width, int height){
+std::vector<Color> Scene::render(int width, int height){
     std::vector<Color> pixels(width * height);
     
-    double inv_width = 1 / double(width), inv_height = 1 / double(height); 
-    double fov = 45, aspectratio = width / double(height); 
-    double angle = tan(M_PI * 0.5 * fov / 180.0); 
-    // Trace rays
-    
-    std::vector<int> indices(height * width);
-    for(int i = 0; i < height * width; ++i) indices[i] = i;
+    double fov = 45;
+    Camera cam{width, height, fov};
 
+    int samples = 4; // samples per axi
     auto trace_rays = [&](int i){
         int x = i % width;
         int y = i / width;
-        double xx = (2 * ((x + 0.5) * inv_width) - 1) * angle * aspectratio; 
-        double yy = (1 - 2 * ((y + 0.5) * inv_height)) * angle; 
-        Vec3d raydir(xx, yy, -1); 
 
-        raydir.normalize();
-
-        Color c = trace(Vec3d{}, raydir, scene);
-        pixels[x + y * width] = c;
+        // extra samples per pixel
+        Color c = 0;
+        for(int sx = 1; sx <= samples; ++sx){
+            for(int sy = 1; sy <= samples; ++sy){ 
+                double x_0 = x + (sx / double(samples + 1));
+                double y_0 = y + (sy / double(samples + 1));
+                c = c + trace(cam.get_origin(), cam.ray_dir_at_pixel(x_0, y_0), *this);
+            }
+        }
+        pixels[x + y * width] = c * (1.0 / (samples*samples));
 
         if(i % (int)(height * width / 100.0 * 10) == 0) std::cout << i / (int)(height * width / 100.0) << std::endl;
     };
 
-    // igl::parallel_for(height * width, trace_rays);
     #pragma omp parallel for
     for(int i = 0; i < height * width; ++i) trace_rays(i);
 
-    drawbmp(filepath.c_str(), width, height, pixels.data()); 
+    return pixels;
 }

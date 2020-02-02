@@ -1,8 +1,5 @@
-#include "Object.h"
-#include "Light.h"
-#include "MathUtils.h"
 #include "Raycaster.h"
-#include "Material.h"
+#include "writebmp.h"
 
 Material make_diffuse_mat(const Color &color){
     Material m;
@@ -27,6 +24,7 @@ Material test_mat(const Color &color){
 int main(){
     Material test = test_mat(white);
     Material r = make_diffuse_mat(red);
+    r.reflective = true;
     Material g = make_diffuse_mat(green);
     Material b = make_diffuse_mat(blue);
     Material w = make_diffuse_mat(white);
@@ -35,18 +33,19 @@ int main(){
 
     Scene scene{background};
 
-    scene.add_object(new Plane({ 0.0,      1, 0.1}, r, {0, -10, -30}, 100)); 
-    scene.add_object(new Mesh("../assets/polysphere.obj", test));  
+    scene.add_object(new Plane({ 0.0,      1, 0.1}, g, {0, -7, -30}, 100)); 
+    // scene.add_object(new Mesh("../assets/polysphere.obj", r));  
     // scene.add_object(new Mesh("/home/ayon/Downloads/dragon_large.obj", r)); 
     // scene.add_object(new Mesh("../assets/mirror.obj", floor)); 
-    // scene.add_object(new Sphere({ 5,      0, -30},     1, test)); 
-    // scene.add_object(new Sphere({ 0.0,      5, -35},     4.0, test)); 
-    // scene.add_object(new Sphere({ 5.0,     2, -15},     2.0, b))); 
+    // scene.add_object(new Sphere({ 5,      0, -30},     1, g)); 
+    // scene.add_object(new Sphere({ 0.0,      5, -35},     4.0, r)); 
+    scene.add_object(new Sphere({ 5.0,     2, -15},     2.0, r)); 
     // scene.add_object(new Sphere({ 5.0,      0, -25},     3.0, r))); 
     // scene.add_object(new Sphere({-5.5,      0, -20},     0.5, g))); 
     
     scene.add_light(Light({-5,     5, 0}, 300));
     
-    int width = 1080, height = 720;
-    scene.render(std::string("raycast.bmp"), scene, width, height);
+    int width = 1080/2, height = 720/2;
+    std::vector<Color> pixels = scene.render(width, height);
+    drawbmp("raycast.bmp", width, height, pixels.data());
 }

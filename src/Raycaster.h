@@ -7,7 +7,7 @@
 #include "Object.h"
 #include "Light.h"
 
-constexpr int ray_bounce_limit = 5;
+constexpr int ray_bounce_limit = 10;
 
 struct Scene {
     std::vector<std::unique_ptr<Object>> objects;
@@ -23,7 +23,7 @@ public:
 
     void add_light(const Light &light);
 
-    void render(const std::string &filepath, const Scene &scene, int width, int height);
+    std::vector<Color> render(int width, int height);
 
 private:
     Color trace(const Vec3d &ray_orig,

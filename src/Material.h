@@ -15,4 +15,6 @@ struct Material{
                           const Vec3d &hit_loc,
                           const Vec3d &hit_norm,
                           const std::vector<Light> lights) const;
+    Vec3d reflected_ray(const Vec3d &ray_dir,
+                        const Vec3d &hit_norm) const;
 };

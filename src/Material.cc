@@ -5,6 +5,7 @@ Color Material::calculate_color(const Vec3d &ray_dir,
                                 const Vec3d &hit_norm,
                                 const std::vector<Light> lights) const
 {
+
     Vec3d to_viewer = ray_dir * -1;
     Color c = 0;
 
@@ -21,7 +22,19 @@ Color Material::calculate_color(const Vec3d &ray_dir,
         Color diffuse = color_d * k_d * std::max(0.0, light_dir.dot(hit_norm));
         Color specular = color_s * k_s * std::pow(std::max(0.0, R_m.dot(to_viewer)), alpha);
 
-        c = c + diffuse * k_d + specular * k_s;
+        // c = c + diffuse * k_d + specular * k_s;
+        c = c + diffuse;
     }
+    
     return c;
+}
+
+Vec3d Material::reflected_ray(const Vec3d &ray_dir,
+                              const Vec3d &hit_norm) const
+{
+    double fuzz = 0.02;
+    Vec3d perfect_reflection = ray_dir - hit_norm * 2 * ray_dir.dot(hit_norm);
+    Vec3d r = perfect_reflection + random_in_unit_sphere() * fuzz;
+    r.normalize();
+    return r;
 }
