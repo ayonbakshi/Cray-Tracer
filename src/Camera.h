@@ -11,11 +11,18 @@ class Camera {
     double aspect_ratio;
     double fov, angle;
     Vec3d origin, dir;
+    Vec3d up, right;
 
 public:
-    Camera(int width, int height, double fov, Vec3d origin = 0, Vec3d dir = {0,0,-1});
-    Vec3d ray_dir_at_pixel(double x, double y);
-    const Vec3d &get_origin() { return origin; }
+    Camera(int width, int height, double fov, const Vec3d &origin = 0, const Vec3d &dir = {0,0,-1});
+    void move(const Vec3d &new_origin, const Vec3d &new_dir);
+    void move_from_to(const Vec3d &from, const Vec3d &to);
+    Vec3d ray_dir_at_pixel(double x, double y) const;
+    const Vec3d &get_origin() const { return origin; }
+    int get_width() const { return width; }
+    int get_height() const { return height; }
+private:
+    void calc_axes();
 };
 
 

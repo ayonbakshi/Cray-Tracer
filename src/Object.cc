@@ -10,9 +10,13 @@
 
 
 Object::Object(const Material &material): material{material} {}
+Object::Object(const Mat2 &mat2): mat2{mat2} {}
 
 Sphere::Sphere(const Vec3d &center, double radius, const Material &material):
     Object{material}, center{center}, radius{radius} {}
+
+Sphere::Sphere(const Vec3d &center, double radius, const Mat2 &mat2):
+    Object{mat2}, center{center}, radius{radius} {}
 
 bool Sphere::ray_intersection(const Vec3d &ray_orig,
                           const Vec3d &ray_dir,
@@ -30,15 +34,17 @@ bool Sphere::ray_intersection(const Vec3d &ray_orig,
     t0 = tca - thc; 
     t1 = tca + thc; 
 
-    if (t0 < EPSILON && t1 < EPSILON) return false;
+    if (t1 < t0) std::swap(t0, t1);
+    if (t1 < EPSILON) return false;
+    
+    dist = t0 < EPSILON ? t1 : t0;
 
-    dist = std::min(t0, t1);
     hit_loc = ray_orig + (ray_dir * dist);
     hit_norm = hit_loc - center;
     return true; 
 }
 
-Plane::Plane(const Vec3d &normal, const Material &material, const Vec3d &center, double size):
+Plane::Plane(const Vec3d &normal, const Vec3d &center, const Material &material, double size):
     Object{material}, normal{normal}, center{center}, size{size}
 {
     this->normal.normalize();

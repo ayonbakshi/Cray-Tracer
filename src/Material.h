@@ -18,3 +18,18 @@ struct Material{
     Vec3d reflected_ray(const Vec3d &ray_dir,
                         const Vec3d &hit_norm) const;
 };
+
+struct Mat2{
+    enum MatType {Diffuse, Metal, Dielectric};
+    MatType type;
+    Vec3d albedo;
+    Vec3d emissive;
+    double roughness;
+    double refract_ind;
+
+    std::vector<Vec3d> scattered_rays(const Vec3d &ray_dir,
+                                      const Vec3d &hit_loc,
+                                      const Vec3d &hit_norm,
+                                      Vec3d &attenuation,
+                                      Vec3d &outLightE) const;
+};

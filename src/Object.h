@@ -11,7 +11,9 @@
 class Object {
     public:
         Material material;
+        Mat2 mat2;
         Object(const Material &material);
+        Object(const Mat2 &mat2);
         virtual bool ray_intersection(const Vec3d &, const Vec3d &, double &, Vec3d &, Vec3d &) const = 0;
         virtual ~Object() {}
 };
@@ -22,8 +24,11 @@ class Sphere : public Object {
 
 public:
     Sphere(const Vec3d &center, double radius, const Material &material);
+    Sphere(const Vec3d &center, double radius, const Mat2 &mat2);
     ~Sphere() {}
 
+    const Vec3d &get_center() const { return center; }
+    const double &get_radius() const { return radius; }
     bool ray_intersection(const Vec3d &ray_orig,
                           const Vec3d &ray_dir,
                           double &dist,
@@ -36,7 +41,7 @@ class Plane : public Object {
     double size;
 
 public:
-    Plane(const Vec3d &normal, const Material &material, const Vec3d &center = 0, double size = INF);
+    Plane(const Vec3d &normal, const Vec3d &center, const Material &material, double size = INF);
     ~Plane() {}
 
     bool ray_intersection(const Vec3d &ray_orig,

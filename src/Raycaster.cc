@@ -7,9 +7,9 @@
 #include "Light.h"
 #include "Camera.h"
 
-Scene::Scene(): background{255} {}
 
-Scene::Scene(const Color &background): background{background} {}
+Scene::Scene(const Color &background):
+    background{background} {}
 
 void Scene::add_object(Object *obj){
     objects.emplace_back(obj);
@@ -19,9 +19,32 @@ void Scene::add_light(const Light &light){
     light_sources.push_back(light);
 }
 
+const Object *Scene::hit_scene(const Vec3d &ray_orig,
+                               const Vec3d &ray_dir,
+                               Vec3d &hit_loc,
+                               Vec3d &hit_norm)
+{
+    double min_dist = INF;
+    const Object *closest_obj = nullptr;
+
+    // calculate closest obj
+    for(auto &obj : objects){
+        double dist = INF;
+        Vec3d tmp_hit_loc, tmp_hit_norm;
+        if(obj->ray_intersection(ray_orig, ray_dir, dist, tmp_hit_loc, tmp_hit_norm)){
+            if (dist < min_dist) {
+                min_dist = dist; 
+                closest_obj = obj.get();
+                hit_loc = tmp_hit_loc;
+                hit_norm = tmp_hit_norm;
+            }
+        }
+    }
+    return closest_obj;
+}
+
 Color Scene::trace(const Vec3d &ray_orig,
                    const Vec3d &ray_dir,
-                   const Scene &scene,
                    int hit_depth){
     if(hit_depth >= ray_bounce_limit) return 0;
 
@@ -30,7 +53,7 @@ Color Scene::trace(const Vec3d &ray_orig,
     Vec3d hit_loc, hit_norm;
 
     // calculate closest sphere
-    for(auto &obj : scene.objects){
+    for(auto &obj : objects){
         double dist = INF;
         Vec3d tmp_hit_loc, tmp_hit_norm;
         if(obj->ray_intersection(ray_orig, ray_dir, dist, tmp_hit_loc, tmp_hit_norm)){
@@ -43,12 +66,7 @@ Color Scene::trace(const Vec3d &ray_orig,
         }
     }
 
-
-    
-
     if(closest_obj){
-        double factor = 1;
-        
         Vec3d light_pos = light_sources[0].get_location();
         Vec3d light_dir = light_pos - hit_loc;
         
@@ -59,7 +77,7 @@ Color Scene::trace(const Vec3d &ray_orig,
         light_dir.normalize();
 
         bool in_shadow = false;
-        for(auto &obj : scene.objects){
+        for(auto &obj : objects){
             double dist;
             Vec3d tmp;
             if(obj->ray_intersection(hit_loc, light_dir, dist, tmp, tmp)){
@@ -80,7 +98,7 @@ Color Scene::trace(const Vec3d &ray_orig,
             Color reflected = 0;
             for (int i = 0; i < bounces; ++i) {
                 Vec3d ref_ray = closest_obj->material.reflected_ray(ray_dir, hit_norm);
-                reflected = reflected + trace(hit_loc, ref_ray, scene, hit_depth + 1);
+                reflected = reflected + trace(hit_loc, ref_ray, hit_depth + 1);
             }
             c = c.mix(reflected * (1.0 / bounces), 0.2);
         }
@@ -90,13 +108,95 @@ Color Scene::trace(const Vec3d &ray_orig,
     return background;
 }
 
-std::vector<Color> Scene::render(int width, int height){
-    std::vector<Color> pixels(width * height);
-    
-    double fov = 45;
-    Camera cam{width, height, fov};
+Color Scene::trace2(const Vec3d &ray_orig,
+                    const Vec3d &ray_dir,
+                    int hit_depth)
+{
+    Vec3d hit_loc, hit_norm;
+    const Object *closest_obj = hit_scene(ray_orig, ray_dir, hit_loc, hit_norm);
+    hit_norm.normalize();
 
-    int samples = 4; // samples per axi
+    if (closest_obj) {
+        std::vector<Vec3d> bounce_dirs;
+        Vec3d attenuation;
+        Vec3d lightE;
+        const Mat2& mat = closest_obj->mat2;
+
+        Color scattered_color = 0;
+        if (hit_depth < ray_bounce_limit){
+            bounce_dirs = mat.scattered_rays(ray_dir, hit_loc, hit_norm, attenuation, lightE);
+
+            // importance sampling
+            importance_sampling(closest_obj, ray_dir, hit_loc, hit_norm, lightE);
+
+            if (bounce_dirs.size()) {
+                for (const Vec3d &dir : bounce_dirs) {
+                    auto t2 = trace2(hit_loc, dir, hit_depth + 1);
+                    scattered_color = scattered_color + t2;
+                }
+                scattered_color = lightE + attenuation * (scattered_color * (1.0 / bounce_dirs.size()));
+            }
+        }
+
+        return mat.emissive + scattered_color;
+    } else {
+        return background;
+    }
+}
+
+void Scene::importance_sampling(const Object *closest_object,
+                                const Vec3d &ray_dir,
+                                const Vec3d &hit_loc,
+                                const Vec3d &hit_norm,
+                                Vec3d &outLightE)
+{
+    Mat2 mat = closest_object->mat2;
+    if (mat.type != Mat2::Diffuse) return;
+
+    for(auto &obj : objects){
+        const Mat2 &smat = obj->mat2;
+        if (smat.emissive[0] <= 0 && smat.emissive[1] <= 0 && smat.emissive[2] <= 0)
+            continue; // skip non-emissive
+        if (&mat == &smat)
+            continue; // skip self
+        
+        // this has to be a sphere (or maybe disk)
+        const Sphere &s = dynamic_cast<Sphere&>(*obj);
+
+        Vec3d sw = (s.get_center() - hit_loc).normalize();
+        Vec3d su = (abs(sw[0])>0.01f ? Vec3d(0,1,0):Vec3d(1,0,0)).cross(sw).normalize();
+        Vec3d sv = sw.cross(su);
+
+        // sample sphere by solid angle
+        float cosAMax = sqrt(1.0f - s.get_radius()*s.get_radius() / (hit_loc-s.get_center()).sqrNorm());
+        float eps1 = RandomFloat01(), eps2 = RandomFloat01();
+        float cosA = 1.0f - eps1 + eps1 * cosAMax;
+        float sinA = sqrt(1.0f - cosA*cosA);
+        float phi = 2 * M_PI * eps2;
+        Vec3d l = su * cos(phi) * sinA + sv * sin(phi) * sinA + sw * cosA;
+        l.normalize();
+
+        
+        // shadow ray
+        Vec3d light_hit, light_norm;
+        // if we hit the current light source
+        if (hit_scene(hit_loc, l, light_hit, light_norm) == obj.get()) {
+            float omega = 2 * M_PI * (1-cosAMax);
+            
+            Vec3d rdir = ray_dir;
+            Vec3d nl = hit_norm.dot(rdir) < 0 ? hit_norm : hit_norm * -1;
+            outLightE = outLightE + (mat.albedo * smat.emissive) * (std::max(0.0, l.dot(nl)) * omega / M_PI);
+        }
+    }
+}
+
+std::vector<Color> Scene::render(const Camera &cam){
+    int width = cam.get_width();
+    int height = cam.get_height();
+
+    std::vector<Color> pixels(width * height);
+
+    int samples = 32; // samples per axis
     auto trace_rays = [&](int i){
         int x = i % width;
         int y = i / width;
@@ -107,10 +207,11 @@ std::vector<Color> Scene::render(int width, int height){
             for(int sy = 1; sy <= samples; ++sy){ 
                 double x_0 = x + (sx / double(samples + 1));
                 double y_0 = y + (sy / double(samples + 1));
-                c = c + trace(cam.get_origin(), cam.ray_dir_at_pixel(x_0, y_0), *this);
+                c = c + trace2(cam.get_origin(), cam.ray_dir_at_pixel(x_0, y_0));
             }
         }
-        pixels[x + y * width] = c * (1.0 / (samples*samples));
+        c = c * (1.0 / (samples*samples));
+        pixels[x + y * width] = c;
 
         if(i % (int)(height * width / 100.0 * 10) == 0) std::cout << i / (int)(height * width / 100.0) << std::endl;
     };
