@@ -23,7 +23,7 @@ Material test_mat(const Color &color){
 
 int main(){
     Material test = test_mat(white);
-    Material r = make_diffuse_mat(red);
+    Material r = make_diffuse_mat(white);
     r.reflective = true;
     Material g = make_diffuse_mat(green);
     Material b = make_diffuse_mat(blue);
@@ -33,13 +33,13 @@ int main(){
 
     Scene scene{background};
 
-    scene.add_object(new Plane({ 0.0,      1, 0.1}, g, {0, -7, -30}, 100)); 
-    // scene.add_object(new Mesh("../assets/polysphere.obj", r));  
+    scene.add_object(new Plane({ 0.0,      1, 0.1}, blue_floor, {0, -7, -30}, 100)); 
+    scene.add_object(new Mesh("../assets/bunny.obj", r));  
     // scene.add_object(new Mesh("/home/ayon/Downloads/dragon_large.obj", r)); 
     // scene.add_object(new Mesh("../assets/mirror.obj", floor)); 
     // scene.add_object(new Sphere({ 5,      0, -30},     1, g)); 
     // scene.add_object(new Sphere({ 0.0,      5, -35},     4.0, r)); 
-    scene.add_object(new Sphere({ 5.0,     2, -15},     2.0, r)); 
+    // scene.add_object(new Sphere({ 5.0,     2, -15},     2.0, r)); 
     // scene.add_object(new Sphere({ 5.0,      0, -25},     3.0, r))); 
     // scene.add_object(new Sphere({-5.5,      0, -20},     0.5, g))); 
     

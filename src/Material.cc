@@ -32,7 +32,7 @@ Color Material::calculate_color(const Vec3d &ray_dir,
 Vec3d Material::reflected_ray(const Vec3d &ray_dir,
                               const Vec3d &hit_norm) const
 {
-    double fuzz = 0.02;
+    double fuzz = 0.3;
     Vec3d perfect_reflection = ray_dir - hit_norm * 2 * ray_dir.dot(hit_norm);
     Vec3d r = perfect_reflection + random_in_unit_sphere() * fuzz;
     r.normalize();

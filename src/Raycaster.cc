@@ -23,7 +23,7 @@ Color Scene::trace(const Vec3d &ray_orig,
                    const Vec3d &ray_dir,
                    const Scene &scene,
                    int hit_depth){
-    if(hit_depth == ray_bounce_limit) return 0;
+    if(hit_depth >= ray_bounce_limit) return 0;
 
     double min_dist = INF;
     const Object *closest_obj = nullptr;
@@ -75,8 +75,14 @@ Color Scene::trace(const Vec3d &ray_orig,
         }
         
         if(closest_obj->material.reflective){
-            Color reflected_color = trace(hit_loc, closest_obj->material.reflected_ray(ray_dir, hit_norm), scene, hit_depth + 1);
-            c = c.mix(reflected_color, 0.2);
+            // not complete specular
+            int bounces = 3;
+            Color reflected = 0;
+            for (int i = 0; i < bounces; ++i) {
+                Vec3d ref_ray = closest_obj->material.reflected_ray(ray_dir, hit_norm);
+                reflected = reflected + trace(hit_loc, ref_ray, scene, hit_depth + 1);
+            }
+            c = c.mix(reflected * (1.0 / bounces), 0.2);
         }
 
         return c;
