@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "Raycaster.h"
 #include "writebmp.h"
 
@@ -34,8 +36,8 @@ Scene mat1_test_scene(){
 
     Vec3d to = {0, 2, 0};
 
-    scene.add_object(new Plane({ 0.0,      1, 0.0}, 0, blue_floor, 100)); 
-    scene.add_object(new Sphere(to, 1, r));
+    // scene.add_object(new Plane({ 0.0,      1, 0.0}, 0, blue_floor, 100)); 
+    // scene.add_object(new Sphere(to, 1, r));
 
     // scene.add_object(new Plane({ 0.0,      1, 0.1}, {0, -7, -30}, blue_floor, 100)); 
     // scene.add_object(new Mesh("../assets/polysphere.obj", r));  
@@ -54,47 +56,55 @@ Scene mat1_test_scene(){
 Scene mat2_test_scene() {
     std::vector<Vec3d> sphere_posns = {
         {2,0,-1},
-        {0,0,-1},
+        {0,0,-0.5},
         {-2,0,-1},
-        {2,0,1},
-        {0,0,1},
-        {-2,0,1},
-        {0.5f,1,0.5f},
-        {-1.5f,1.5f,0.f}
+        {1,0,0.5},
+        {5,1,0},
+        {-1,0,0.5},
+        {0.f,1.2,0.5f},
+        {-1.5f,2.0f,0.f}
     };
     std::vector<double> sphere_r = {
         0.5f,
         0.5f,
         0.5f,
         0.5f,
+        0.2f,
         0.5f,
-        0.5f,
-        0.5f,
+        0.6f,
         0.3f
     };
 
     std::vector<Mat2> mats = {
         { Mat2::Diffuse, Vec3d(0.8f, 0.4f, 0.4f), Vec3d(0,0,0), 0, 0 },
-        { Mat2::Diffuse, Vec3d(0.4f, 0.8f, 0.4f), Vec3d(0,0,0), 0, 0 },
+        { Mat2::Diffuse, Vec3d(0.4f, 0.4f, 0.8f), Vec3d(0,0,0), 0, 0 },
         { Mat2::Metal, Vec3d(0.4f, 0.4f, 0.8f), Vec3d(0,0,0), 0, 0 },
-        { Mat2::Metal, Vec3d(0.4f, 0.8f, 0.4f), Vec3d(0,0,0), 0, 0 },
-        { Mat2::Metal, Vec3d(0.4f, 0.8f, 0.4f), Vec3d(0,0,0), 0.2f, 0 },
+        { Mat2::Metal, Vec3d(0.79f, 0.56f, 0.21f), Vec3d(0,0,0), 0.2, 0 },
+        { Mat2::Diffuse, Vec3d(0.4f, 0.0f, 0.8f), Vec3d(10,10,20), 0, 0 },
         { Mat2::Metal, Vec3d(0.4f, 0.8f, 0.4f), Vec3d(0,0,0), 0.6f, 0 },
         { Mat2::Dielectric, Vec3d(0.4f, 0.4f, 0.4f), Vec3d(0,0,0), 0, 1.5f },
-        { Mat2::Diffuse, Vec3d(0.8f, 0.6f, 0.2f), Vec3d(30,25,15), 0, 0 }
+        { Mat2::Diffuse, Vec3d(0.8f, 0.6f, 0.2f), Vec3d(50,25,25), 0, 0 }
     };
+
+    std::vector<int> include = {1, 3, 5, 6, 7};
 
     Scene scene{background};
     int num_spheres = sphere_posns.size();
     for (int i = 0; i < num_spheres; ++i) {
-        // if(i != num_spheres - 1 && i != num_spheres - 2) continue;
+        // if(!std::count(include.begin(), include.end(), i)) continue;
+        if (i != 7) continue;
         scene.add_object(new Sphere{sphere_posns[i], sphere_r[i], mats[i]});
     }
 
-    Vec3d big_sphere_posn = Vec3d(0,-100.5,-1);
-    double big_sphere_radius = 100;
-    Mat2 big_sphere_mat = { Mat2::Diffuse, Vec3d(0.8f, 0.8f, 0.8f), Vec3d(0,0,0), 0, 0 };
-    scene.add_object(new Sphere{big_sphere_posn, big_sphere_radius, big_sphere_mat});
+    Mat2 floor_mat = { Mat2::Diffuse, Vec3d(0.6f, 0.6f, 0.8f), Vec3d(0,0,0), 0, 0 };
+    scene.add_object(new Plane({ 0.0,      1, 0.0}, {0, -0.5, 0}, floor_mat, 100)); 
+
+    scene.add_object(new Mesh("../assets/bunny_low.obj", mats[3]));  
+
+    // Vec3d big_sphere_posn = Vec3d(0,-100.5,-1);
+    // double big_sphere_radius = 100;
+    // Mat2 big_sphere_mat = { Mat2::Diffuse, Vec3d(0.8f, 0.8f, 0.8f), Vec3d(0,0,0), 0, 0 };
+    // scene.add_object(new Sphere{big_sphere_posn, big_sphere_radius, big_sphere_mat});
 
     return scene;
 }
@@ -121,15 +131,21 @@ void render_still(Scene &s, Camera &cam, const std::string &name) {
 }
 
 int main(){
-    int width = 1080/4, height = 720/4;
+    int width = 1080/2, height = 720/2;
     double fov = 45;
     Camera cam{width, height, fov};
     
     Scene scene = mat2_test_scene();
-    Vec3d lookfrom(0,2,3);
+    Vec3d lookfrom(0,1,1);
     Vec3d lookat(0,0,0);
     cam.move_from_to(lookfrom, lookat);
+
+    auto start = std::chrono::high_resolution_clock::now();
     render_still(scene, cam, "path");
+    // render_turntable(scene, cam, "path_anim", 0, 3, 3, 60);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start); 
+    std::cout << "took: " << duration.count() / 1000.0 << std::endl;
 
     // Vec3d to = {0, 2, 0};
     // cam.move_from_to({0, 4, 6}, to);

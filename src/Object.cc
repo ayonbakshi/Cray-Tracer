@@ -44,8 +44,8 @@ bool Sphere::ray_intersection(const Vec3d &ray_orig,
     return true; 
 }
 
-Plane::Plane(const Vec3d &normal, const Vec3d &center, const Material &material, double size):
-    Object{material}, normal{normal}, center{center}, size{size}
+Plane::Plane(const Vec3d &normal, const Vec3d &center, const Mat2 &mat2, double size):
+    Object{mat2}, normal{normal}, center{center}, size{size}
 {
     this->normal.normalize();
 }
@@ -70,8 +70,8 @@ bool Plane::ray_intersection(const Vec3d &ray_orig,
     return true;
 }
 
-Mesh::Mesh(const std::string &filepath, const Material &material):
-    Object{material}
+Mesh::Mesh(const std::string &filepath, const Mat2 &mat2):
+    Object{mat2}
 {
     std::ifstream obj_file{filepath};
     std::string line;

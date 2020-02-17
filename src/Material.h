@@ -30,6 +30,5 @@ struct Mat2{
     std::vector<Vec3d> scattered_rays(const Vec3d &ray_dir,
                                       const Vec3d &hit_loc,
                                       const Vec3d &hit_norm,
-                                      Vec3d &attenuation,
-                                      Vec3d &outLightE) const;
+                                      Vec3d &attenuation) const;
 };

@@ -41,16 +41,13 @@ Vec3d Material::reflected_ray(const Vec3d &ray_dir,
 std::vector<Vec3d> Mat2::scattered_rays(const Vec3d &ray_dir,
                                         const Vec3d &hit_loc,
                                         const Vec3d &hit_norm,
-                                        Vec3d &attenuation,
-                                        Vec3d &outLightE) const
+                                        Vec3d &attenuation) const
 {
     int num_scattered = 1;
     std::vector<Vec3d> ray_dirs;
     ray_dirs.reserve(num_scattered);
 
     // only do diffuse now
-    outLightE = Vec3d(0,0,0);
-
     if (type == Mat2::Diffuse) {
         attenuation = albedo;
 

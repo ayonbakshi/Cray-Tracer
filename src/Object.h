@@ -41,7 +41,7 @@ class Plane : public Object {
     double size;
 
 public:
-    Plane(const Vec3d &normal, const Vec3d &center, const Material &material, double size = INF);
+    Plane(const Vec3d &normal, const Vec3d &center, const Mat2 &mat2, double size = INF);
     ~Plane() {}
 
     bool ray_intersection(const Vec3d &ray_orig,
@@ -58,7 +58,7 @@ class Mesh : public Object {
     KDTree kdtree;
 
 public:
-    Mesh(const std::string &filepath, const Material &material);
+    Mesh(const std::string &filepath, const Mat2 &mat2);
     ~Mesh() {}
 
     bool ray_intersection(const Vec3d &ray_orig,
