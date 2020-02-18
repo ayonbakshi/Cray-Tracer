@@ -3,3 +3,4 @@
 *.d
 *.mtl
 src/*.bmp
+assets/hdrs/*
