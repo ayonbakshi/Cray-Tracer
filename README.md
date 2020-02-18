@@ -3,7 +3,7 @@ A simple path tracer
 
 
 ## Path Tracing
-Here's a cool animation of two metals objects, a diffuse object, a fresnel lens and an emissive light source!
+Here's a cool animation of two metals objects, a diffuse object, a glass (dielectric) object and an emissive light source!
 
 ![Path Tracing](example_pictures/path_rotate.gif)
 
