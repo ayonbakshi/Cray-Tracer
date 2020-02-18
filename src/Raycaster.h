@@ -7,6 +7,7 @@
 #include "Object.h"
 #include "Light.h"
 #include "Camera.h"
+#include "hdr_utils.h"
 
 constexpr int ray_bounce_limit = 10;
 constexpr int russian_roulette_start_depth = 5;
@@ -15,6 +16,9 @@ struct Scene {
     std::vector<std::unique_ptr<Object>> objects;
     std::vector<Light> light_sources;
     Color background;
+
+    HDRI environment;
+    bool use_environment;
 
 public:
     Scene(const Color &background = 255);
@@ -34,6 +38,11 @@ public:
                             const Vec3d &ray_dir,
                             Vec3d &hit_loc,
                             Vec3d &hit_norm);
+
+    void set_HDRI(const std::string &filepath);
+    void set_env_rotation(double theta); // set clockwise z rotation
+
+    Color get_background(const Vec3d &dir) const;
 
     std::vector<Color> render(const Camera &cam);
 

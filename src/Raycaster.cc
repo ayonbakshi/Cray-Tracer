@@ -6,10 +6,11 @@
 #include "Object.h"
 #include "Light.h"
 #include "Camera.h"
+#include "hdr_utils.h"
 
 
 Scene::Scene(const Color &background):
-    background{background} {}
+    background{background}, use_environment{false} {}
 
 void Scene::add_object(Object *obj){
     objects.emplace_back(obj);
@@ -41,6 +42,23 @@ const Object *Scene::hit_scene(const Vec3d &ray_orig,
         }
     }
     return closest_obj;
+}
+
+void Scene::set_HDRI(const std::string &filepath) {
+    use_environment = true;
+    bool res = HDRLoader::load(filepath.c_str(), environment);
+    if(!res) {
+        std::cerr << "Cannot load HDRI: " << filepath << std::endl;
+        throw 1;
+    }
+}
+
+void Scene::set_env_rotation(double theta) {
+    environment.theta = theta;
+}
+
+Color Scene::get_background(const Vec3d &dir) const {
+    return use_environment ? environment.get_pixel(dir) : background;
 }
 
 Color Scene::trace(const Vec3d &ray_orig,
@@ -147,7 +165,7 @@ Color Scene::trace2(const Vec3d &ray_orig,
             return emissive_col;
         }
     } else {
-        return background;
+        return get_background(ray_dir);
     }
 }
 
@@ -208,7 +226,7 @@ std::vector<Color> Scene::render(const Camera &cam){
 
     std::vector<Color> pixels(width * height);
 
-    int samples = 16;
+    int samples = 128;
     int aa_samples = 16; // aa_samples per axis
     double inv_samples = 1.0 / (aa_samples*aa_samples*samples);
 

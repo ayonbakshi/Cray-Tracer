@@ -8,8 +8,11 @@
 constexpr double INF = 1e10;
 constexpr double EPSILON = 1e-6;
 
+
 template<typename T>
 class Vec3 {
+    typedef double (*apply_fn)(double);
+    
     std::array<T, 3> p;
 
 public:
@@ -65,6 +68,11 @@ public:
     Vec3<T> operator+(const Vec3<T> &other) const {return {p[0] + other.p[0], p[1] + other.p[1], p[2] + other.p[2]}; }
     Vec3<T> operator-(const Vec3<T> &other) const {return {p[0] - other.p[0], p[1] - other.p[1], p[2] - other.p[2]}; }
     
+    Vec3<T> apply(apply_fn fn) {
+        for(T &t : p) t = fn(t);
+        return *this;
+    }
+
     void clamp(T min, T max) {
         for(T &t : p) t = t < min ? min : t > max ? max : t;
     }
@@ -132,4 +140,12 @@ inline double schlick(double c, double refract_ind) {
     double r0 = (1.0-refract_ind) / (1.0+refract_ind);
     r0 = r0*r0;
     return r0 + (1-r0)*pow(1-c, 5);
+}
+
+inline double contrast_tone_map(double in) {
+    return in / (in + 1);
+}
+
+inline double gamma_compression(double in, double a, double gamma) {
+    return a * pow(in, gamma);
 }

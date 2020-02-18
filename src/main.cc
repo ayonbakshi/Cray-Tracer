@@ -25,16 +25,16 @@ Material test_mat(const Color &color){
 
 Scene mat1_test_scene(){
     // Material test = test_mat(white);
-    Material r = make_diffuse_mat(white);
+    // Material r = make_diffuse_mat(white);
     // r.reflective = true;
     // Material g = make_diffuse_mat(green);
     // Material b = make_diffuse_mat(blue);
     // Material w = make_diffuse_mat(white);
     // Material floor = make_diffuse_mat({69/255.0, 37/255.0, 80/255.0});
-    Material blue_floor = make_diffuse_mat({120/255.0, 80/255.0, 200/255.0});
+    // Material blue_floor = make_diffuse_mat({120/255.0, 80/255.0, 200/255.0});
     Scene scene{background};
 
-    Vec3d to = {0, 2, 0};
+    // Vec3d to = {0, 2, 0};
 
     // scene.add_object(new Plane({ 0.0,      1, 0.0}, 0, blue_floor, 100)); 
     // scene.add_object(new Sphere(to, 1, r));
@@ -49,7 +49,7 @@ Scene mat1_test_scene(){
     // scene.add_object(new Sphere({ 5.0,      0, -25},     3.0, r))); 
     // scene.add_object(new Sphere({-5.5,      0, -20},     0.5, g))); 
     
-    scene.add_light(Light({-5,     5, 0}, 300));
+    // scene.add_light(Light({-5,     5, 0}, 300));
     return scene;
 }
 
@@ -61,7 +61,7 @@ Scene mat2_test_scene() {
         {1,0,0.5},
         {5,1,0},
         {-1,0,0.5},
-        {0.f,1.2,0.5f},
+        {0.f,0.,0.f},
         {-1.7f,1.5f,1.f},
         {1.7f,1.5f,1.f}
     };
@@ -80,8 +80,8 @@ Scene mat2_test_scene() {
     std::vector<Mat2> mats = {
         { Mat2::Diffuse, Vec3d(0.8f, 0.8f, 0.8f), Vec3d(0,0,0), 0, 0 },
         { Mat2::Diffuse, Vec3d(0.4f, 0.4f, 0.8f), Vec3d(0,0,0), 0, 0 },
-        { Mat2::Metal, Vec3d(0.4f, 0.4f, 0.8f), Vec3d(0,0,0), 0, 0 },
-        { Mat2::Metal, Vec3d(0.79f, 0.56f, 0.21f), Vec3d(0,0,0), 0.2, 0 },
+        { Mat2::Metal, Vec3d(1, 1, 1), Vec3d(0,0,0), 0, 0 },
+        { Mat2::Metal, Vec3d(0.79f, 0.56f, 0.21f), Vec3d(0,0,0), 0.0, 0 },
         { Mat2::Diffuse, Vec3d(0.4f, 0.0f, 0.8f), Vec3d(10,10,20), 0, 0 },
         { Mat2::Metal, Vec3d(0.4f, 0.8f, 0.4f), Vec3d(0,0,0), 0.6f, 0 },
         { Mat2::Dielectric, Vec3d(0.4f, 0.4f, 0.4f), Vec3d(0,0,0), 0, 1.5f },
@@ -91,23 +91,61 @@ Scene mat2_test_scene() {
 
     std::vector<int> include = {1, 3, 5, 6, 7, 8};
 
-    Scene scene{0};
+    Scene scene{{.2, .2, .2}};
     int num_spheres = sphere_posns.size();
     for (int i = 0; i < num_spheres; ++i) {
         if(!std::count(include.begin(), include.end(), i)) continue;
-        if (i != 7 and i != 8) continue;
+        if(i != 6) continue;
         scene.add_object(new Sphere{sphere_posns[i], sphere_r[i], mats[i]});
     }
 
-    Mat2 floor_mat = { Mat2::Diffuse, Vec3d(1.f, 1.0f, 1.0f), Vec3d(0,0,0), 0, 0 };
-    scene.add_object(new Plane({ 0.0,      1, 0.0}, {0, -0.5, 0}, floor_mat, 100)); 
+    // Mat2 floor_mat = { Mat2::Diffuse, Vec3d(1.f, 1.0f, 1.0f), Vec3d(0,0,0), 0, 0 };
+    // scene.add_object(new Plane({ 0.0,      1, 0.0}, {0, -0.5, 0}, floor_mat, 100)); 
 
-    scene.add_object(new Mesh("../assets/monkey_low.obj", mats[0]));  
+    // scene.add_object(new Mesh("../assets/monkey_low.obj", mats[0]));  
 
     // Vec3d big_sphere_posn = Vec3d(0,-100.5,-1);
     // double big_sphere_radius = 100;
     // Mat2 big_sphere_mat = { Mat2::Diffuse, Vec3d(0.8f, 0.8f, 0.8f), Vec3d(0,0,0), 0, 0 };
     // scene.add_object(new Sphere{big_sphere_posn, big_sphere_radius, big_sphere_mat});
+
+    scene.set_HDRI("../assets/hdrs/sunny.hdr");
+
+    return scene;
+}
+
+void zoom(double factor, Vec3d &from, const Vec3d &to) {
+    Vec3d dir = from - to;
+    from = to + dir * factor;
+}
+
+Scene HDRI_test_scene() {
+    Scene scene;
+    scene.set_HDRI("../assets/hdrs/office.hdr");
+    scene.set_env_rotation(-0.2);
+
+    // Vec3d sun_pos(0, 10, 0);
+    // Mat2 sun_mat = { Mat2::Diffuse, Vec3d(0.8f, 0.8f, 0.8f), 50, 0, 0 };
+    // scene.add_object(new Sphere{sun_pos, 1, sun_mat});
+
+    std::vector<Mat2> sphere_mats = {
+        { Mat2::Metal, 1, 0, 0.4, 0 },
+        { Mat2::Diffuse, Vec3d(0.8f, 0.8f, 0.8f), 0, 0, 0 },
+        { Mat2::Metal, 1, 0, 0, 0 },
+        { Mat2::Dielectric, Vec3d(0.8f, 0.f, 0.8f), 0, 0, 1.5 }
+    };
+
+    double theta = 0 / 180.0 * M_PI;
+    double sphere_r = 0.5;
+    double spacing = 2 * sphere_r + 0.2;
+    for (int i = 0; i < 4; ++i) {
+        double off = (i - 1.5) * spacing;
+        scene.add_object(new Sphere{{off*cos(theta), 0, off*sin(theta)}, sphere_r, sphere_mats[i]});
+    }
+
+    // table
+    Mat2 table_mat = {Mat2::Diffuse, 0.8, 0, 0, 0};
+    scene.add_object(new Plane{{0, 1, 0}, {0, -sphere_r, 0}, table_mat, 3});
 
     return scene;
 }
@@ -134,13 +172,14 @@ void render_still(Scene &s, Camera &cam, const std::string &name) {
 }
 
 int main(){
-    int width = 1080/2, height = 720/2;
+    int width = 1080, height = 720;
     double fov = 45;
     Camera cam{width, height, fov};
     
-    Scene scene = mat2_test_scene();
-    Vec3d lookfrom(0,1.5,2.5);
-    Vec3d lookat(0,0.2,0);
+    Scene scene = HDRI_test_scene();
+    Vec3d lookfrom(1,1,3);
+    Vec3d lookat(0,0.7,-1);
+    zoom(1, lookfrom, lookat);
     cam.move_from_to(lookfrom, lookat);
 
     auto start = std::chrono::high_resolution_clock::now();

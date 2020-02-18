@@ -19,6 +19,8 @@ struct Material{
                         const Vec3d &hit_norm) const;
 };
 
+
+// refactor to be polymorphic
 struct Mat2{
     enum MatType {Diffuse, Metal, Dielectric};
     MatType type;
