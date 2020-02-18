@@ -21,8 +21,8 @@ Color Material::calculate_color(const Vec3d &ray_dir,
         Color diffuse = color_d * k_d * std::max(0.0, light_dir.dot(hit_norm));
         Color specular = color_s * k_s * std::pow(std::max(0.0, R_m.dot(to_viewer)), alpha);
 
-        // c = c + diffuse * k_d + specular * k_s;
-        c = c + diffuse;
+        c = c + diffuse * k_d + specular * k_s;
+        // c = c + diffuse;
     }
     
     return c;
@@ -38,34 +38,32 @@ Vec3d Material::reflected_ray(const Vec3d &ray_dir,
     return r;
 }
 
-std::vector<Vec3d> Mat2::scattered_rays(const Vec3d &ray_dir,
-                                        const Vec3d &hit_loc,
-                                        const Vec3d &hit_norm,
-                                        Vec3d &attenuation) const
+bool Mat2::scatter(const Vec3d &ray_dir,
+                    const Vec3d &hit_loc,
+                    const Vec3d &hit_norm,
+                    Vec3d &attenuation,
+                    Vec3d &scattered_ray,
+                    bool &include_emission) const
 {
-    int num_scattered = 1;
-    std::vector<Vec3d> ray_dirs;
-    ray_dirs.reserve(num_scattered);
-
     // only do diffuse now
     if (type == Mat2::Diffuse) {
         attenuation = albedo;
-
-        while (int(ray_dirs.size()) != num_scattered) {
-            Vec3d dir = hit_norm + random_in_unit_sphere();
-            dir.normalize();
-            ray_dirs.push_back(dir);
-        }
+        scattered_ray = (hit_norm + random_in_unit_sphere()).normalize();
+        include_emission = false;
+        return true;
     } else if (type == Mat2::Metal) {
         attenuation = albedo;
-
         Vec3d refl = reflect(ray_dir, hit_norm);
         // reflected ray, and random inside of sphere based on roughness
-        while (int(ray_dirs.size()) != num_scattered) {
-            Vec3d dir = refl + random_in_unit_sphere() * roughness;
-            dir.normalize();
-            if (dir.dot(hit_norm) > 0)
-                ray_dirs.push_back(dir);
+        scattered_ray = refl + random_in_unit_sphere() * roughness;
+        
+
+        // if ray is in hemisphere
+        if (scattered_ray.dot(hit_norm) > 0) {
+            scattered_ray.normalize();
+            return true;
+        } else {
+            return false;
         }
     } else if (type == Mat2::Dielectric) {
         attenuation = Vec3d(1.0,1.0,1.0);
@@ -105,14 +103,13 @@ std::vector<Vec3d> Mat2::scattered_rays(const Vec3d &ray_dir,
         }
 
         if(RandomFloat01() < reflect_prob) {
-            ray_dirs.push_back(reflected.normalize());
+            scattered_ray = reflected.normalize();
         }
         else {
-            ray_dirs.push_back(refracted.normalize());
+            scattered_ray = refracted.normalize();
         }
-
-
+        return true;
+    } else {
+        return false;
     }
-
-    return ray_dirs;
 }

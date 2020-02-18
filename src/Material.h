@@ -27,8 +27,10 @@ struct Mat2{
     double roughness;
     double refract_ind;
 
-    std::vector<Vec3d> scattered_rays(const Vec3d &ray_dir,
-                                      const Vec3d &hit_loc,
-                                      const Vec3d &hit_norm,
-                                      Vec3d &attenuation) const;
+    bool scatter(const Vec3d &ray_dir,
+                 const Vec3d &hit_loc,
+                 const Vec3d &hit_norm,
+                 Vec3d &attenuation,
+                 Vec3d &scattered_dir,
+                 bool &include_emission) const;
 };

@@ -72,7 +72,6 @@ public:
     void correct_gamma(double factor = 1.5) {
         clamp(0.0, 1.0);
         double power = 1.0 / factor;
-        std::cout << power << std::endl;
         for(T &t : p) t = pow(t, power);
     }
 };
@@ -132,6 +131,5 @@ inline Vec3d refractVector(const Vec3d &I, const Vec3d &N, const float &ior)
 inline double schlick(double c, double refract_ind) {
     double r0 = (1.0-refract_ind) / (1.0+refract_ind);
     r0 = r0*r0;
-    // std::cout << r0 << " " << c << std::endl;
     return r0 + (1-r0)*pow(1-c, 5);
 }

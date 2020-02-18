@@ -9,6 +9,7 @@
 #include "Camera.h"
 
 constexpr int ray_bounce_limit = 10;
+constexpr int russian_roulette_start_depth = 5;
 
 struct Scene {
     std::vector<std::unique_ptr<Object>> objects;
@@ -42,7 +43,8 @@ private:
                 int hit_depth = 0);
     Color trace2(const Vec3d &ray_orig,
                  const Vec3d &ray_dir,
-                 int hit_depth = 0);
+                 int hit_depth = 0,
+                 bool include_emission = true);
 };
 
 

@@ -110,35 +110,42 @@ Color Scene::trace(const Vec3d &ray_orig,
 
 Color Scene::trace2(const Vec3d &ray_orig,
                     const Vec3d &ray_dir,
-                    int hit_depth)
+                    int hit_depth,
+                    bool include_emission)
 {
+    // static int cnt = 0;
+    // ++cnt;
+    // if(cnt%1000==0) std::cout << cnt << std::endl;
+
+    if (hit_depth >= ray_bounce_limit) return 0;
+
     Vec3d hit_loc, hit_norm;
     const Object *closest_obj = hit_scene(ray_orig, ray_dir, hit_loc, hit_norm);
     hit_norm.normalize();
 
     if (closest_obj) {
-        std::vector<Vec3d> bounce_dirs;
-        Vec3d attenuation;
-        Vec3d lightE;
+        Vec3d scattered, attenuation, lightE;
         const Mat2& mat = closest_obj->mat2;
+        const Color &alb = mat.albedo;
 
-        Color scattered_color = 0;
-        if (hit_depth < ray_bounce_limit){
-            bounce_dirs = mat.scattered_rays(ray_dir, hit_loc, hit_norm, attenuation);
+        Color emissive_col = mat.emissive * include_emission;
 
-            // importance sampling
+        if(mat.scatter(ray_dir, hit_loc, hit_norm, attenuation, scattered, include_emission)){
             importance_sampling(closest_obj, ray_dir, hit_loc, hit_norm, lightE);
-
-            if (bounce_dirs.size()) {
-                for (const Vec3d &dir : bounce_dirs) {
-                    auto t2 = trace2(hit_loc, dir, hit_depth + 1);
-                    scattered_color = scattered_color + t2;
+            // russian roulette
+            double max_albedo = alb[0] > alb[1] && alb[0] > alb[2] ? alb[0] : alb[1] > alb[2] ? alb[1] : alb[2];
+            if (hit_depth >= russian_roulette_start_depth||!max_albedo){
+                if(RandomFloat01() < max_albedo) {
+                    attenuation = attenuation * (1.0 / max_albedo);
+                } else {
+                    return emissive_col;
                 }
-                scattered_color = lightE + attenuation * (scattered_color * (1.0 / bounce_dirs.size()));
             }
-        }
 
-        return mat.emissive + scattered_color;
+            return emissive_col + lightE + attenuation * trace2(hit_loc, scattered, hit_depth + 1, include_emission);
+        } else {
+            return emissive_col;
+        }
     } else {
         return background;
     }
@@ -188,10 +195,12 @@ void Scene::importance_sampling(const Object *closest_object,
             
             Vec3d rdir = ray_dir;
             Vec3d nl = hit_norm.dot(rdir) < 0 ? hit_norm : hit_norm * -1;
-            out_light_E = out_light_E + (mat.albedo * smat.emissive) * (std::max(0.0, l.dot(nl)) * omega / M_PI);
+            out_light_E = out_light_E + (mat.albedo * smat.emissive) * (std::max(0.0, l.dot(nl)) * omega * M_1_PI);
         }
     }
 }
+
+#define RANDOM_ANTIALIASING
 
 std::vector<Color> Scene::render(const Camera &cam){
     int width = cam.get_width();
@@ -199,8 +208,8 @@ std::vector<Color> Scene::render(const Camera &cam){
 
     std::vector<Color> pixels(width * height);
 
-    int samples = 1;
-    int aa_samples = 4; // aa_samples per axis
+    int samples = 16;
+    int aa_samples = 16; // aa_samples per axis
     double inv_samples = 1.0 / (aa_samples*aa_samples*samples);
 
     auto trace_rays = [&](int i){
@@ -210,10 +219,15 @@ std::vector<Color> Scene::render(const Camera &cam){
         // extra aa_samples per pixel
         Color c = 0;
         for(int s = 0; s < samples; ++s) {
-            for(int sx = 1; sx <= aa_samples; ++sx){
-                for(int sy = 1; sy <= aa_samples; ++sy){ 
+        for(int sx = 1; sx <= aa_samples; ++sx){
+                for(int sy = 1; sy <= aa_samples; ++sy){
+                    #ifdef RANDOM_ANTIALIASING
+                    double x_0 = x + RandomFloat01();
+                    double y_0 = y + RandomFloat01();
+                    #else
                     double x_0 = x + (sx / double(aa_samples + 1));
                     double y_0 = y + (sy / double(aa_samples + 1));
+                    #endif
                     c = c + trace2(cam.get_origin(), cam.ray_dir_at_pixel(x_0, y_0));
                 }
             }
@@ -221,10 +235,10 @@ std::vector<Color> Scene::render(const Camera &cam){
         c = c * inv_samples;
         pixels[x + y * width] = c;
 
-        if(i % (int)(height * width / 100.0 * 1) == 0) std::cout << i / (int)(height * width / 100.0) << std::endl;
+        if(i % (int)(height * width / 100.0 * 10) == 0) std::cout << i / (int)(height * width / 100.0) << std::endl;
     };
 
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for(int i = 0; i < height * width; ++i) trace_rays(i);
 
     return pixels;

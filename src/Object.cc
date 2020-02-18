@@ -142,7 +142,7 @@ bool Mesh::ray_intersection(const Vec3d &ray_orig,
     Vec3d tmp_hit_loc;
     for(uint i = 0; i < tris.size(); i++){
         double tri_dist = INF;
-        if(ray_triangle_intersection(ray_orig, ray_dir, i, tri_dist, tmp_hit_loc)){
+        if(kdtree.ray_triangle_intersection(ray_orig, ray_dir, i, tri_dist, tmp_hit_loc)){
             if(tri_dist < dist){
                 closest_tri = i;
                 dist = tri_dist;
