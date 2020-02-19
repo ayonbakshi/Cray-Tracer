@@ -15,7 +15,8 @@ Monte Carlo integration with one sample will have a lot of noise. Here's a compa
 ![256 Samples](example_pictures/4ksamples.bmp)
 
 ## HDRI Backgrounds
-To add backgrounds to the scenes, an HDRI was spherically mapped to an infinite-radius sphere. Radience information can then be extracted from the HDRI (with your favourite tone-mapping function) to create a lit scene. Here's an example. Notice the reflection of the other half of the scene in the shiny metal ball, and the refaction of the room lights and window light through the glass ball.
+To add backgrounds to the scenes, an HDRI was spherically mapped to an infinite-radius sphere. Radience information can then be extracted from the HDRI (with your favourite tone-mapping function) to create a lit scene. Here's a few examples.
 
 ![HDRI](example_pictures/hdri.bmp)
-(image obtained via HDRI Haven)
+![HDRI](example_pictures/hdri_night.bmp)
+(Background HDRs obtained via HDRI Haven)

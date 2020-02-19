@@ -120,18 +120,18 @@ void zoom(double factor, Vec3d &from, const Vec3d &to) {
 }
 
 Scene HDRI_test_scene() {
-    Scene scene;
-    scene.set_HDRI("../assets/hdrs/office.hdr");
-    scene.set_env_rotation(-0.2);
+    Scene scene{0};
+    scene.set_HDRI("../assets/hdrs/night.hdr");
+    scene.set_env_rotation(-0.1);
 
     // Vec3d sun_pos(0, 10, 0);
-    // Mat2 sun_mat = { Mat2::Diffuse, Vec3d(0.8f, 0.8f, 0.8f), 50, 0, 0 };
+    // Mat2 sun_mat = { Mat2::Diffuse, Vec3d(0.8f, 0.8f, 0.8f), 1, 0, 0 };
     // scene.add_object(new Sphere{sun_pos, 1, sun_mat});
 
     std::vector<Mat2> sphere_mats = {
-        { Mat2::Metal, 1, 0, 0.4, 0 },
-        { Mat2::Diffuse, Vec3d(0.8f, 0.8f, 0.8f), 0, 0, 0 },
         { Mat2::Metal, 1, 0, 0, 0 },
+        { Mat2::Diffuse, Vec3d(0.8f, 0.8f, 0.8f), 0, 0, 0 },
+        { Mat2::Metal, {0.86f, 0.66f, 0.26f}, 0, 0.1, 0 },
         { Mat2::Dielectric, Vec3d(0.8f, 0.f, 0.8f), 0, 0, 1.5 }
     };
 
@@ -139,13 +139,16 @@ Scene HDRI_test_scene() {
     double sphere_r = 0.5;
     double spacing = 2 * sphere_r + 0.2;
     for (int i = 0; i < 4; ++i) {
+        if(i != 0 && i != 3) continue;
         double off = (i - 1.5) * spacing;
         scene.add_object(new Sphere{{off*cos(theta), 0, off*sin(theta)}, sphere_r, sphere_mats[i]});
     }
 
     // table
-    Mat2 table_mat = {Mat2::Diffuse, 0.8, 0, 0, 0};
-    scene.add_object(new Plane{{0, 1, 0}, {0, -sphere_r, 0}, table_mat, 3});
+    Mat2 table_mat = {Mat2::Metal, 0.8, 0, 0.12, 0};
+    scene.add_object(new Plane{{0, 1, 0}, {0, -sphere_r-0.05, 0}, table_mat, 3});
+
+    scene.add_object(new Mesh{"../assets/meshes/monkey_low.obj", sphere_mats[2]});
 
     return scene;
 }
@@ -172,13 +175,16 @@ void render_still(Scene &s, Camera &cam, const std::string &name) {
 }
 
 int main(){
-    int width = 1080, height = 720;
+    int width = 1280, height = 720;
+    double factor = 1.5;
+    width *= factor; height *= factor;
+
     double fov = 45;
     Camera cam{width, height, fov};
     
     Scene scene = HDRI_test_scene();
-    Vec3d lookfrom(1,1,3);
-    Vec3d lookat(0,0.7,-1);
+    Vec3d lookfrom(0,.6,3);
+    Vec3d lookat(0,0.3,0);
     zoom(1, lookfrom, lookat);
     cam.move_from_to(lookfrom, lookat);
 

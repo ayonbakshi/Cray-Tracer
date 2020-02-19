@@ -2,6 +2,7 @@
 #include <array>
 #include <memory>
 #include <algorithm>
+#include <queue>
 
 #include "MathUtils.h"
 #include "Object.h"
@@ -19,7 +20,7 @@ BBox::BBox(const std::vector<Vec3d> &points) {
     }
 }
 
-bool BBox::intersect(const Vec3d &ray_orig, const Vec3d &ray_dir){
+bool BBox::intersect(const Vec3d &ray_orig, const Vec3d &ray_dir, double &dist){
     double tmin = (min[0] - ray_orig[0]) / ray_dir[0]; 
     double tmax = (max[0] - ray_orig[0]) / ray_dir[0]; 
 
@@ -52,6 +53,8 @@ bool BBox::intersect(const Vec3d &ray_orig, const Vec3d &ray_dir){
 
     if (tzmax < tmax) 
         tmax = tzmax; 
+    
+    dist = tmin < EPSILON ? tmax : tmin;
 
     return true; 
 }
@@ -93,8 +96,8 @@ std::unique_ptr<KDTree::Node> KDTree::build_tree(std::vector<int> &tri_indices, 
     std::unique_ptr<Node> node = std::make_unique<Node>(build_bbox(tri_indices));
 
     // if leaf node
-    if(tri_indices.size() == 1){
-        node->tri_index = tri_indices[0];
+    if(tri_indices.size() <= leaf_node_size){
+        node->tri_indices = tri_indices;
         return node;
     }
 
@@ -121,6 +124,7 @@ bool KDTree::ray_triangle_intersection(const Vec3d &ray_orig,
                                      double &dist,
                                      Vec3d &hit_loc) const
 {
+    // Möller–Trumbore intersection algorithm from Wikipedia
     const Vec3d &vertex0 = (*mesh_verts)[(*mesh_tris)[tri_index][0]];
     const Vec3d &vertex1 = (*mesh_verts)[(*mesh_tris)[tri_index][1]];  
     const Vec3d &vertex2 = (*mesh_verts)[(*mesh_tris)[tri_index][2]];
@@ -155,35 +159,84 @@ bool KDTree::ray_triangle_intersection(const Vec3d &ray_orig,
 int KDTree::ray_intersect(const Vec3d &ray_orig,
                           const Vec3d &ray_dir,
                           double &dist,
-                          Vec3d &hit_loc) const {
-    return ray_intersect_helper(ray_orig, ray_dir, dist, hit_loc, root);
+                          Vec3d &hit_loc) const
+{
+    return ray_intersect_recursive(ray_orig, ray_dir, dist, hit_loc, root);
 }
 
-int KDTree::ray_intersect_helper(const Vec3d &ray_orig,
+
+// I don't think this works lol
+int KDTree::ray_intersect_iterative(const Vec3d &ray_orig,
+                                    const Vec3d &ray_dir,
+                                    double &dist,
+                                    Vec3d &hit_loc) const
+{
+    double tmp_dist = 0;
+    if(!root || !(root->bbox.intersect(ray_orig, ray_dir, tmp_dist))) return -1;
+    std::priority_queue<QueueElement, std::vector<QueueElement>> heap;
+    heap.emplace(root.get(), tmp_dist);
+
+    while (!heap.empty()) {
+        const Node *n = heap.top().n; 
+        heap.pop();
+
+        if (n->tri_indices.size()) {
+            int closest_tri = -1;
+            for (int tri_index : n->tri_indices) {
+                double tmp_dist;
+                Vec3d tmp_hit_loc;
+                if(ray_triangle_intersection(ray_orig, ray_dir, tri_index, tmp_dist, tmp_hit_loc)){
+                    if (tmp_dist < dist) {
+                        dist = tmp_dist;
+                        hit_loc = tmp_hit_loc;
+                        closest_tri = tri_index;
+                    }
+                }
+            }
+            if (closest_tri != -1) return closest_tri;
+        } else {
+            double tmp_dist;
+            if (n->left && n->left->bbox.intersect(ray_orig, ray_dir, tmp_dist)) {
+                heap.emplace(n->left.get(), tmp_dist);
+            }
+            if (n->right && n->right->bbox.intersect(ray_orig, ray_dir, tmp_dist)) {
+                heap.emplace(n->right.get(), tmp_dist);
+            }
+        }
+    }
+    return -1;
+}
+
+int KDTree::ray_intersect_recursive(const Vec3d &ray_orig,
                              const Vec3d &ray_dir,
                              double &dist,
                              Vec3d &hit_loc,
                              const std::unique_ptr<Node> &node) const
 {
-    if(!node || !(node->bbox.intersect(ray_orig, ray_dir))) return -1;
+    double tmp_dist = 0;
+    if(!node || !(node->bbox.intersect(ray_orig, ray_dir, tmp_dist))) return -1;
 
     // set dist, hit_loc and return index
-    if(node->tri_index != -1){
-        double tmp_dist;
-        Vec3d tmp_hit_loc;
-        if(ray_triangle_intersection(ray_orig, ray_dir, node->tri_index, tmp_dist, tmp_hit_loc)){
-            dist = tmp_dist;
-            hit_loc = tmp_hit_loc;
-            return node->tri_index;
-        } else {
-            return -1;
+    if(node->tri_indices.size()){
+        int closest_tri = -1;
+        for (int tri_index : node->tri_indices) {
+            double tmp_dist;
+            Vec3d tmp_hit_loc;
+            if(ray_triangle_intersection(ray_orig, ray_dir, tri_index, tmp_dist, tmp_hit_loc)){
+                if (tmp_dist < dist) {
+                    dist = tmp_dist;
+                    hit_loc = tmp_hit_loc;
+                    closest_tri = tri_index;
+                }
+            }
         }
+        return closest_tri;
     }
 
     double dist1 = INF, dist2 = INF;
     Vec3d hit_loc1, hit_loc2;
-    int left_tri = ray_intersect_helper(ray_orig, ray_dir, dist1, hit_loc1, node->left);
-    int right_tri = ray_intersect_helper(ray_orig, ray_dir, dist2, hit_loc2, node->right);
+    int left_tri = ray_intersect_recursive(ray_orig, ray_dir, dist1, hit_loc1, node->left);
+    int right_tri = ray_intersect_recursive(ray_orig, ray_dir, dist2, hit_loc2, node->right);
 
     if(left_tri == -1 && right_tri == -1) return -1;
     else if(dist1 < dist2){

@@ -4,6 +4,7 @@
 #include <array>
 #include <iostream>
 #include <cstdlib>
+#include <limits>
 
 constexpr double INF = 1e10;
 constexpr double EPSILON = 1e-6;
@@ -94,15 +95,26 @@ const Color black{0, 0, 0};
 const Color white{1, 1, 1};
 const Color background{160/255.0, 1, 1};
 
-inline double RandomFloat01()
+// RNG
+static uint64_t rng_seed = 1;
+inline uint64_t xorshift64()
 {
-    return rand() / double(RAND_MAX);
+    uint64_t x = rng_seed;
+	x ^= x << 13;
+	x ^= x >> 7;
+	x ^= x << 17;
+	return rng_seed = x;
+}
+
+inline double random_double_01()
+{
+    return xorshift64() / static_cast<double>(std::numeric_limits<uint64_t>::max());
 }
 
 inline Vec3d random_in_unit_sphere() {
     Vec3d p;
     do {
-        p = Vec3d(RandomFloat01(),RandomFloat01(),RandomFloat01()) * 2.0 - Vec3d(1,1,1);
+        p = Vec3d(random_double_01(),random_double_01(),random_double_01()) * 2.0 - Vec3d(1,1,1);
     } while (p.sqrNorm() >= 1.0);
     return p;
 }

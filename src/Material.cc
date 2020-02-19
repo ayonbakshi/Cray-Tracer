@@ -38,6 +38,92 @@ Vec3d Material::reflected_ray(const Vec3d &ray_dir,
     return r;
 }
 
+Vec3d Mat2::sample(const Vec3d &ray_dir,
+                   const Vec3d &hit_norm) const
+{
+    if (type == Mat2::Diffuse) {
+        return (hit_norm + random_in_unit_sphere()).normalize();
+    } else if (type == Mat2::Metal) {
+        Vec3d refl = reflect(ray_dir, hit_norm);
+        return refl + random_in_unit_sphere() * roughness;
+    } else if (type == Mat2::Dielectric) {
+        Vec3d outward_normal;
+        Vec3d reflected = reflect(ray_dir, hit_norm);
+        Vec3d refracted;
+
+        float ni_over_nt;
+        float reflect_prob;
+        float cosine;
+        
+        // when ray shoot through object back into vacuum,
+        // ni_over_nt = refract_ind, surface normal has to be inverted.
+        if (ray_dir.dot(hit_norm) > 0){
+            outward_normal = hit_norm * -1;
+            ni_over_nt = refract_ind;
+            cosine = ray_dir.dot(hit_norm);
+        }
+        // when ray shoots into object,
+        // ni_over_nt = 1 / refract_ind.
+        else{
+            outward_normal = hit_norm;
+            ni_over_nt = 1.0 / refract_ind;
+            cosine = -ray_dir.dot(hit_norm);
+        }
+        
+
+        // refracted ray exists
+        if(refract(ray_dir, outward_normal, ni_over_nt, refracted)){
+            reflect_prob = schlick(cosine, refract_ind);
+        }
+        // refracted ray does not exist
+        else{
+            // total reflection
+            reflect_prob = 1.0;
+        }
+
+        if(random_double_01() < reflect_prob) {
+            return reflected.normalize();
+        }
+        else {
+            return refracted.normalize();
+        }
+    }
+
+    return 0;
+}
+
+void Mat2::eval(const Vec3d &wi,
+                const Vec3d &ray_dir,
+                const Vec3d &hit_norm,
+                Vec3d &reflectance,
+                double &pdf) const
+{
+    if (type == Mat2::Diffuse) {
+        reflectance = albedo * M_1_PI;
+        pdf = M_1_PI * 0.5; // equally likely to go in any direction in hemisphere (1/2pi)
+    } else if (type == Mat2::Metal) {
+        reflectance = albedo;
+        pdf = 1; // this is not physically accurate. Change to a proper BRDF later
+    } else if (type == Mat2::Dielectric) {
+        reflectance = 1;
+        pdf = 1;
+    }
+}
+
+Vec3d Mat2::eval(const Vec3d &wi,
+                const Vec3d &ray_dir,
+                const Vec3d &hit_norm) const
+{
+    if (type == Mat2::Diffuse) {
+        return albedo;// * (wi.dot(hit_norm) * 2);
+    } else if (type == Mat2::Metal) {
+        return albedo;
+    } else if (type == Mat2::Dielectric) {
+        return 1;
+    }
+    return 0;
+}
+
 bool Mat2::scatter(const Vec3d &ray_dir,
                     const Vec3d &hit_loc,
                     const Vec3d &hit_norm,
@@ -45,7 +131,6 @@ bool Mat2::scatter(const Vec3d &ray_dir,
                     Vec3d &scattered_ray,
                     bool &include_emission) const
 {
-    // only do diffuse now
     if (type == Mat2::Diffuse) {
         attenuation = albedo;
         scattered_ray = (hit_norm + random_in_unit_sphere()).normalize();
@@ -102,7 +187,7 @@ bool Mat2::scatter(const Vec3d &ray_dir,
             reflect_prob = 1.0;
         }
 
-        if(RandomFloat01() < reflect_prob) {
+        if(random_double_01() < reflect_prob) {
             scattered_ray = reflected.normalize();
         }
         else {

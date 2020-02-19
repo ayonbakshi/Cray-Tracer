@@ -19,6 +19,7 @@ public:
 	// each pixel takes 3 float32, each component can be of any value...
 	float *cols;
     
+    HDRI(): cols{nullptr} {}
     ~HDRI() { delete[] cols; }
 
     Vec3d get_pixel(Vec3d dir) const {
@@ -44,9 +45,10 @@ public:
         for (int i = 0; i < 3; ++i) {
             ret[i] = cols[idx + i];
 
-            ret[i] = gamma_compression(ret[i], 1, 0.38);
+            ret[i] = gamma_compression(ret[i], 0.6, 0.8);
+            // ret[i] = contrast_tone_map(ret[i]);
         }
-        
+        ret.clamp(0, 2);
         return ret;
     }
 };

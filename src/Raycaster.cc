@@ -34,7 +34,7 @@ const Object *Scene::hit_scene(const Vec3d &ray_orig,
         Vec3d tmp_hit_loc, tmp_hit_norm;
         if(obj->ray_intersection(ray_orig, ray_dir, dist, tmp_hit_loc, tmp_hit_norm)){
             if (dist < min_dist) {
-                min_dist = dist; 
+                min_dist = dist;
                 closest_obj = obj.get();
                 hit_loc = tmp_hit_loc;
                 hit_norm = tmp_hit_norm;
@@ -131,10 +131,6 @@ Color Scene::trace2(const Vec3d &ray_orig,
                     int hit_depth,
                     bool include_emission)
 {
-    // static int cnt = 0;
-    // ++cnt;
-    // if(cnt%1000==0) std::cout << cnt << std::endl;
-
     if (hit_depth >= ray_bounce_limit) return 0;
 
     Vec3d hit_loc, hit_norm;
@@ -153,7 +149,7 @@ Color Scene::trace2(const Vec3d &ray_orig,
             // russian roulette
             double max_albedo = alb[0] > alb[1] && alb[0] > alb[2] ? alb[0] : alb[1] > alb[2] ? alb[1] : alb[2];
             if (hit_depth >= russian_roulette_start_depth||!max_albedo){
-                if(RandomFloat01() < max_albedo) {
+                if(random_double_01() < max_albedo) {
                     attenuation = attenuation * (1.0 / max_albedo);
                 } else {
                     return emissive_col;
@@ -167,6 +163,51 @@ Color Scene::trace2(const Vec3d &ray_orig,
     } else {
         return get_background(ray_dir);
     }
+}
+
+Color Scene::trace_iterative(Vec3d ray_orig,
+                            Vec3d ray_dir)
+{
+    //
+
+    Vec3d hit_loc, hit_norm;
+    Vec3d attenuation = 1;
+    Color c = 0;
+
+    for (int b = 0; b < ray_bounce_limit; ++b) {
+        const Object *closest_obj = hit_scene(ray_orig, ray_dir, hit_loc, hit_norm);
+        if (closest_obj == nullptr) {
+            c = c + attenuation * get_background(ray_dir);
+            break;
+        }
+        hit_norm.normalize();
+
+        const Mat2& mat = closest_obj->mat2;
+        if (mat.emissive[0] > 0 || mat.emissive[1] > 0 || mat.emissive[2] > 0) {
+            c = c + attenuation * mat.emissive;
+        }
+
+        Vec3d wi = mat.sample(ray_dir, hit_norm);
+
+        Vec3d reflectance = mat.eval(wi, ray_dir, hit_norm);
+        // double pdf;
+        // mat.eval(wi, ray_dir, hit_norm, reflectance, pdf);
+
+        attenuation = attenuation * reflectance;
+
+        // russian roulette
+        if (b > russian_roulette_start_depth) {
+            double p = std::max(attenuation[0], std::max(attenuation[1], attenuation[2]));
+            if (random_double_01() > p) {
+                break;
+            }
+            attenuation = attenuation * (1.0 / p);
+        }
+        
+        ray_orig = hit_loc;
+        ray_dir = wi;
+    }
+    return c;
 }
 
 void Scene::importance_sampling(const Object *closest_object,
@@ -197,7 +238,7 @@ void Scene::importance_sampling(const Object *closest_object,
 
         // sample sphere by solid angle
         float cos_a_max = sqrt(1.0f - s.get_radius()*s.get_radius() / (hit_loc-s.get_center()).sqrNorm());
-        float eps1 = RandomFloat01(), eps2 = RandomFloat01();
+        float eps1 = random_double_01(), eps2 = random_double_01();
         float cos_a = 1.0f - eps1 + eps1 * cos_a_max;
         float sin_a = sqrt(1.0f - cos_a*cos_a);
         float phi = 2 * M_PI * eps2;
@@ -226,9 +267,8 @@ std::vector<Color> Scene::render(const Camera &cam){
 
     std::vector<Color> pixels(width * height);
 
-    int samples = 128;
-    int aa_samples = 16; // aa_samples per axis
-    double inv_samples = 1.0 / (aa_samples*aa_samples*samples);
+    int samples = 6000;
+    double inv_samples = 1.0 / samples;
 
     auto trace_rays = [&](int i){
         int x = i % width;
@@ -237,18 +277,15 @@ std::vector<Color> Scene::render(const Camera &cam){
         // extra aa_samples per pixel
         Color c = 0;
         for(int s = 0; s < samples; ++s) {
-        for(int sx = 1; sx <= aa_samples; ++sx){
-                for(int sy = 1; sy <= aa_samples; ++sy){
-                    #ifdef RANDOM_ANTIALIASING
-                    double x_0 = x + RandomFloat01();
-                    double y_0 = y + RandomFloat01();
-                    #else
-                    double x_0 = x + (sx / double(aa_samples + 1));
-                    double y_0 = y + (sy / double(aa_samples + 1));
-                    #endif
-                    c = c + trace2(cam.get_origin(), cam.ray_dir_at_pixel(x_0, y_0));
-                }
-            }
+            #ifdef RANDOM_ANTIALIASING
+            double x_0 = x + random_double_01();
+            double y_0 = y + random_double_01();
+            #else
+            double x_0 = x + (sx / double(aa_samples + 1));
+            double y_0 = y + (sy / double(aa_samples + 1));
+            #endif
+            // c = c + trace2(cam.get_origin(), cam.ray_dir_at_pixel(x_0, y_0));
+            c = c + trace_iterative(cam.get_origin(), cam.ray_dir_at_pixel(x_0, y_0));
         }
         c = c * inv_samples;
         pixels[x + y * width] = c;

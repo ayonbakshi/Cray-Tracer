@@ -35,4 +35,17 @@ struct Mat2{
                  Vec3d &attenuation,
                  Vec3d &scattered_dir,
                  bool &include_emission) const;
+
+    Vec3d sample(const Vec3d &ray_dir,
+                 const Vec3d &hit_norm) const;
+
+    void eval(const Vec3d &wi,
+               const Vec3d &ray_dir,
+               const Vec3d &hit_norm,
+               Vec3d &reflectance,
+               double &pdf) const;
+    
+    Vec3d eval(const Vec3d &wi,
+               const Vec3d &ray_dir,
+               const Vec3d &hit_norm) const;
 };

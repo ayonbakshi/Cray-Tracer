@@ -54,6 +54,7 @@ private:
                  const Vec3d &ray_dir,
                  int hit_depth = 0,
                  bool include_emission = true);
+    Color trace_iterative(Vec3d ray_orig, Vec3d ray_dir);
 };
 
 
